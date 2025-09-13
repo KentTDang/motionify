@@ -198,9 +198,36 @@ function drawFrame(canvas, video, result) {
 }
 
 const styles = {
-  page: { display: "flex", flexDirection: "column", gap: 12, padding: 16, fontFamily: "ui-sans-serif, system-ui, -apple-system" },
-  toolbar: { display: "flex", gap: 8, alignItems: "center" },
-  stage: { position: "relative", width: VIDEO_W, height: VIDEO_H, borderRadius: 12, overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.15)" },
-  video: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" },
-  canvas: { position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none" },
+  page: {
+    display: "flex", 
+    flexDirection: "column", 
+    gap: 12, padding: 16, 
+    fontFamily: "ui-sans-serif, system-ui, -apple-system" 
+  },
+  toolbar: { 
+    display: "flex", 
+    gap: 8, 
+    alignItems: "center" 
+  },
+  stage: { 
+    position: "relative", 
+    width: VIDEO_W, 
+    height: VIDEO_H, 
+    borderRadius: 12, 
+    overflow: "hidden",
+     boxShadow: "0 8px 30px rgba(0,0,0,0.15)" 
+  },
+  video: { 
+    position: "absolute", 
+    inset: 0, 
+    width: "100%", 
+    height: "100%", 
+    objectFit: "cover" 
+  },
+  canvas: { 
+    position: "absolute", 
+    inset: 0, 
+    zIndex: 1, 
+    pointerEvents: "none" 
+  },
 };
