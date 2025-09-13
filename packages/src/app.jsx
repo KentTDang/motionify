@@ -116,6 +116,14 @@ export default function App() {
               setLastCheckTime(now);
               
               lastPostureCheck = now;
+                // Average the samples
+                const averagedStatus = averagePostureStatus(samplesRef.current);
+                setPostureStatus(averagedStatus);
+                // Send status to main process for tray icon
+                window.electron?.sendPostureStatus(averagedStatus.status);
+                setLastCheckTime(now);
+                // Clear samples after using them
+                samplesRef.current = [];
             }
           }
 
@@ -625,7 +633,7 @@ function averagePostureStatus(samples) {
       });
     }
   });
-  
+
   return {
     status: details.length === 0 ? 'Good Posture' : 'Poor Posture Detected Over Time',
     details,
