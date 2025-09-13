@@ -117,7 +117,6 @@ export default function App() {
               
               lastPostureCheck = now;
                 // Average the samples
-                const averagedStatus = averagePostureStatus(samplesRef.current);
                 setPostureStatus(averagedStatus);
                 // Send status to main process for tray icon
                 window.electron?.sendPostureStatus(averagedStatus.status);
