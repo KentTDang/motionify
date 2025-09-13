@@ -1,15 +1,45 @@
 {
   "name": "motionify",
   "version": "1.0.0",
-  "description": "JHU HopHacks 2025",
-  "main": "src/index.js",
+  "description": "JHU HopHacks 2025 - Posture Monitoring App Interface",
+  "main": "public/electron.js",
+  "homepage": "./",
   "scripts": {
-    "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-pack": "npm run build && electron .",
+    "build-electron": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --publish=never"
   },
   "author": "Kent Dang, Pearce Packman, Chaoping Li",
   "license": "ISC",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "devDependencies": {
-    "electron": "^38.1.0"
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "concurrently": "^9.2.1",
+    "electron": "^38.1.0",
+    "electron-is-dev": "^3.0.1",
+    "wait-on": "^8.0.5"
   }
 }

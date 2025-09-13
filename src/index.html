@@ -1,11 +1,285 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Electron Webcam</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motionify - Posture Guardian</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Webcam Feed</h1>
-  <video id="webcam" autoplay playsinline width="640" height="480"></video>
+  <!-- Navigation Header -->
+  <header class="header">
+    <div class="nav-container">
+      <div class="logo">
+        <h1>🧘‍♀️ Motionify</h1>
+        <span class="tagline">Your Posture Guardian</span>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-tab" data-tab="exercises">Exercises</button>
+        <button class="nav-tab" data-tab="statistics">Statistics</button>
+        <button class="nav-tab" data-tab="settings">Settings</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Dashboard Tab -->
+    <section id="dashboard" class="tab-content active">
+      <div class="dashboard-grid">
+        <!-- Camera Feed Section -->
+        <div class="camera-section">
+          <div class="camera-container">
+            <video id="webcam" autoplay playsinline muted></video>
+            <div class="camera-overlay">
+              <div class="posture-indicator" id="postureIndicator">
+                <div class="indicator-icon">📷</div>
+                <div class="indicator-text">Initializing Camera...</div>
+              </div>
+            </div>
+          </div>
+          <div class="camera-controls">
+            <button id="toggleCamera" class="btn btn-primary">Start Monitoring</button>
+            <button id="calibratePosture" class="btn btn-secondary" disabled>Calibrate Good Posture</button>
+          </div>
+        </div>
+
+        <!-- Status Panel -->
+        <div class="status-panel">
+          <!-- Timer Section -->
+          <div class="timer-section">
+            <h3>Next Break In</h3>
+            <div class="timer-display">
+              <span id="timerMinutes">30</span>:<span id="timerSeconds">00</span>
+            </div>
+            <div class="timer-controls">
+              <button id="startTimer" class="btn btn-success">Start Session</button>
+              <button id="pauseTimer" class="btn btn-warning" disabled>Pause</button>
+              <button id="resetTimer" class="btn btn-secondary">Reset</button>
+            </div>
+          </div>
+
+          <!-- Posture Status -->
+          <div class="posture-status">
+            <h3>Current Posture</h3>
+            <div class="status-indicator" id="statusIndicator">
+              <div class="status-icon">😊</div>
+              <div class="status-text">Good Posture</div>
+              <div class="confidence-bar">
+                <div class="confidence-fill" style="width: 85%"></div>
+              </div>
+              <span class="confidence-text">85% Confidence</span>
+            </div>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="quick-stats">
+            <h3>Today's Summary</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-value">7.2h</span>
+                <span class="stat-label">Good Posture</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value">12</span>
+                <span class="stat-label">Breaks Taken</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value">3</span>
+                <span class="stat-label">Poor Posture Alerts</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Banner -->
+      <div id="notificationBanner" class="notification-banner hidden">
+        <div class="notification-content">
+          <div class="notification-icon">⚠️</div>
+          <div class="notification-text">
+            <h4>Time for a Break!</h4>
+            <p>You've been sitting for 30 minutes. Stand up and stretch!</p>
+          </div>
+          <div class="notification-actions">
+            <button class="btn btn-primary" id="startExercise">Start Exercises</button>
+            <button class="btn btn-secondary" id="snoozeBreak">Snooze (5 min)</button>
+            <button class="btn btn-text" id="dismissNotification">Dismiss</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Exercises Tab -->
+    <section id="exercises" class="tab-content">
+      <div class="exercises-container">
+        <div class="exercises-header">
+          <h2>Stretching Exercises</h2>
+          <p>Follow these exercises to improve your posture and reduce strain</p>
+        </div>
+        
+        <div class="exercise-categories">
+          <button class="category-btn active" data-category="all">All Exercises</button>
+          <button class="category-btn" data-category="neck">Neck & Shoulders</button>
+          <button class="category-btn" data-category="back">Back</button>
+          <button class="category-btn" data-category="quick">Quick (2 min)</button>
+        </div>
+
+        <div class="exercises-grid" id="exercisesGrid">
+          <!-- Exercise cards will be dynamically populated -->
+        </div>
+
+        <!-- Exercise Modal -->
+        <div id="exerciseModal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 id="exerciseTitle">Exercise Title</h3>
+              <button class="modal-close" id="closeExerciseModal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="exercise-timer">
+                <div class="exercise-progress">
+                  <div class="progress-circle">
+                    <span id="exerciseCountdown">30</span>
+                  </div>
+                </div>
+              </div>
+              <div class="exercise-instructions">
+                <p id="exerciseDescription">Exercise description will appear here</p>
+                <div class="exercise-controls">
+                  <button class="btn btn-primary" id="startExerciseTimer">Start</button>
+                  <button class="btn btn-secondary" id="skipExercise">Skip</button>
+                  <button class="btn btn-success hidden" id="nextExercise">Next Exercise</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Statistics Tab -->
+    <section id="statistics" class="tab-content">
+      <div class="statistics-container">
+        <h2>Posture Statistics</h2>
+        
+        <div class="stats-overview">
+          <div class="stat-card">
+            <h3>This Week</h3>
+            <div class="big-stat">87%</div>
+            <p>Good Posture Time</p>
+          </div>
+          <div class="stat-card">
+            <h3>Average Session</h3>
+            <div class="big-stat">6.2h</div>
+            <p>Daily Usage</p>
+          </div>
+          <div class="stat-card">
+            <h3>Streak</h3>
+            <div class="big-stat">12</div>
+            <p>Days Active</p>
+          </div>
+        </div>
+
+        <div class="charts-container">
+          <div class="chart-section">
+            <h3>Weekly Posture Trends</h3>
+            <div class="chart-placeholder">
+              <canvas id="weeklyChart" width="400" height="200"></canvas>
+            </div>
+          </div>
+          
+          <div class="recent-sessions">
+            <h3>Recent Sessions</h3>
+            <div class="sessions-list">
+              <div class="session-item">
+                <span class="session-date">Today, 2:30 PM</span>
+                <span class="session-duration">3h 45m</span>
+                <span class="session-quality good">Good</span>
+              </div>
+              <div class="session-item">
+                <span class="session-date">Yesterday, 1:15 PM</span>
+                <span class="session-duration">5h 12m</span>
+                <span class="session-quality average">Average</span>
+              </div>
+              <div class="session-item">
+                <span class="session-date">Sep 11, 10:00 AM</span>
+                <span class="session-duration">7h 30m</span>
+                <span class="session-quality excellent">Excellent</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings Tab -->
+    <section id="settings" class="tab-content">
+      <div class="settings-container">
+        <h2>Settings</h2>
+        
+        <div class="settings-groups">
+          <div class="settings-group">
+            <h3>Notifications</h3>
+            <div class="setting-item">
+              <label for="breakInterval">Break Reminder Interval</label>
+              <select id="breakInterval">
+                <option value="15">15 minutes</option>
+                <option value="30" selected>30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">1 hour</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="soundNotifications">Sound Notifications</label>
+              <input type="checkbox" id="soundNotifications" checked>
+            </div>
+            <div class="setting-item">
+              <label for="desktopNotifications">Desktop Notifications</label>
+              <input type="checkbox" id="desktopNotifications" checked>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>Posture Detection</h3>
+            <div class="setting-item">
+              <label for="sensitivity">Detection Sensitivity</label>
+              <input type="range" id="sensitivity" min="1" max="10" value="7">
+              <span class="range-value">7</span>
+            </div>
+            <div class="setting-item">
+              <label for="autoCalibrate">Auto-calibrate Good Posture</label>
+              <input type="checkbox" id="autoCalibrate" checked>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>Display</h3>
+            <div class="setting-item">
+              <label for="theme">Theme</label>
+              <select id="theme">
+                <option value="light" selected>Light</option>
+                <option value="dark">Dark</option>
+                <option value="auto">Auto</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="minimizeToTray">Minimize to System Tray</label>
+              <input type="checkbox" id="minimizeToTray" checked>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn btn-primary" id="saveSettings">Save Settings</button>
+          <button class="btn btn-secondary" id="resetSettings">Reset to Defaults</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
   <script src="renderer.js"></script>
 </body>
 </html>

@@ -1,17 +1,11 @@
-const { app, BrowserWindow } = require("electron");
-const path = require("path");
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './styles.css';
+import App from './App';
 
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-
-  win.loadFile("src/rindex.html");
-}
-
-app.whenReady().then(createWindow);
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
