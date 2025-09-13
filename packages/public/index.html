@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self' blob: data:;
+    script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://cdn.jsdelivr.net blob:;
+    style-src  'self' 'unsafe-inline';
+    img-src    'self' data: blob: *;
+    connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com;
+    worker-src 'self' blob:;
+    ">
+  
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Motionify</title>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
