@@ -4,76 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Motionify - Posture Guardian</title>
-  <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    
+
+
+    
+
+  </style>
 </head>
- <style>
-      body { 
-        margin: 0; 
-        background: #1a1a1a; 
-        font-family: Arial, sans-serif;
-        color: white;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-      }
-      
-      h1 {
-        margin: 20px 0;
-        text-align: center;
-        color: #4CAF50;
-      }
-      
-      #loading {
-        text-align: center;
-        margin: 20px;
-        font-size: 18px;
-      }
-      
-      #wrap { 
-        position: relative; 
-        width: 800px; 
-        height: 600px; 
-        margin: 0 auto;
-        border: 2px solid #4CAF50;
-        border-radius: 10px;
-        overflow: hidden;
-      }
-      
-      video, canvas { 
-        position: absolute; 
-        top: 0; 
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
-      
-      #controls {
-        margin: 20px;
-        text-align: center;
-      }
-      
-      button {
-        background: #4CAF50;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        margin: 5px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 16px;
-      }
-      
-      button:hover {
-        background: #45a049;
-      }
-      
-      button:disabled {
-        background: #666;
-        cursor: not-allowed;
-      }
-    </style>
 <body>
   <!-- Navigation Header -->
   <header class="header">
@@ -349,35 +288,35 @@
 
   
    <h1>Motionify - Real-time Pose Detection</h1>
-    <div id="loading">Loading MediaPipe...</div>
-    
-    <div id="wrap">
-      <video id="webcam" autoplay playsinline muted></video>
-      <canvas id="output"></canvas>
-    </div>
-    
-    <div id="controls">
-      <button id="startBtn" onclick="startDetection()">Start Detection</button>
-      <button id="stopBtn" onclick="stopDetection()" disabled>Stop Detection</button>
-    </div>
-    
-    <!-- Load MediaPipe from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
-    
-    <!-- Debug script to check MediaPipe loading -->
-    <script>
-      window.addEventListener('load', () => {
-        console.log('MediaPipe objects available:', {
-          Pose: !!window.Pose,
-          Camera: !!window.Camera,
-          drawConnectors: !!window.drawConnectors,
-          drawLandmarks: !!window.drawLandmarks
-        });
+  <div id="loading">Loading MediaPipe...</div>
+  
+  <div id="wrap">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas id="output"></canvas>
+  </div>
+  
+  <div id="controls">
+    <button id="startBtn" onclick="startDetection()">Start Detection</button>
+    <button id="stopBtn" onclick="stopDetection()" disabled>Stop Detection</button>
+  </div>
+  
+  <!-- Load MediaPipe from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  
+  <!-- Debug script to check MediaPipe loading -->
+  <script>
+    window.addEventListener('load', () => {
+      console.log('MediaPipe objects available:', {
+        Pose: !!window.Pose,
+        Camera: !!window.Camera,
+        drawConnectors: !!window.drawConnectors,
+        drawLandmarks: !!window.drawLandmarks
       });
-    </script>
-    
-    <script src="renderer.js"></script>
+    });
+  </script>
+  
+  <script src="renderer.js"></script>
 </body>
 </html>

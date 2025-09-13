@@ -2,25 +2,21 @@
   "name": "motionify",
   "version": "1.0.0",
   "description": "JHU HopHacks 2025 - Posture Monitoring App Interface",
-  "main": "public/electron.js",
+  "main": "src/index.js",
   "homepage": "./",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "electron": "electron .",
-    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron-pack": "npm run build && electron .",
-    "build-electron": "npm run build && electron-builder",
-    "dist": "npm run build && electron-builder --publish=never"
+    "start": "electron ."
   },
   "author": "Kent Dang, Pearce Packman, Chaoping Li",
   "license": "ISC",
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/drawing_utils": "^0.3.1675466124",
+    "@mediapipe/pose": "^0.5.1675469404",
+    "react-webcam": "^7.2.0"
   },
   "browserslist": {
     "production": [
@@ -38,15 +34,8 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "concurrently": "^9.2.1",
-    "electron": "^38.1.0",
     "electron-is-dev": "^3.0.1",
-    "wait-on": "^8.0.5"
+    "wait-on": "^8.0.5",
     "electron": "^38.1.0"
-  },
-  "dependencies": {
-    "@mediapipe/camera_utils": "^0.3.1675466862",
-    "@mediapipe/drawing_utils": "^0.3.1675466124",
-    "@mediapipe/pose": "^0.5.1675469404",
-    "react-webcam": "^7.2.0"
   }
 }
