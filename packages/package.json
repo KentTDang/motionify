@@ -4,7 +4,7 @@
   "private": true,
   "electron": "electron .",
   "dist": "electron-builder",
-  "main": "electron.js",
+  "main": "src/main.js",
   "build": {
     "appId": "com.example.myapp",
     "productName": "My Electron App",
@@ -16,7 +16,10 @@
         "NSCameraUsageDescription": "This app needs camera access for posture monitoring and pose detection.",
         "NSMicrophoneUsageDescription": "This app may need microphone access for audio notifications."
       }
-    }
+    },
+    "files": [
+      "src/assets/**/*"
+    ]
   },
   "dependencies": {
     "@mediapipe/camera_utils": "^0.3.1675466862",
