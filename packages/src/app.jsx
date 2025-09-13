@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 
-const CHECK_INTERVAL = 10000;  // Check every 10 seconds
+const CHECK_INTERVAL = 1;  // NOTE: NOW BEING USED TO CHECK DURATION IN BAD POSITION
 const SAMPLES_NEEDED = 30;     // Keep 30 samples (5 minutes worth of data)
 const BAD_POSTURE_THRESHOLD = 0.7; // 70% of samples must show an issue to trigger warning
 
@@ -97,15 +97,12 @@ export default function App() {
                 samplesRef.current.shift();
               }
               
-              // Only update display if enough time has passed
-              if (now - lastCheckTime >= CHECK_INTERVAL && samplesRef.current.length >= SAMPLES_NEEDED) {
                 // Average the samples
                 const averagedStatus = averagePostureStatus(samplesRef.current);
                 setPostureStatus(averagedStatus);
                 setLastCheckTime(now);
                 // Clear samples after using them
                 samplesRef.current = [];
-              }
             }
           }
 
@@ -311,11 +308,11 @@ function checkPosture(landmarks) {
     });
   }
   
-  // Check slouching with more sensitivity
-  const isSlouchingForward = shoulderMidpoint.z - hipMidpoint.z > 0.15;
+  // Check slouching forward with more sensitivity
+  const isSlouchingForward = shoulderMidpoint.z - hipMidpoint.z > 0.005;
   if (isSlouchingForward) {
     issues.push({
-      type: 'Slouching',
+      type: 'Forward head',
       severity: 8,
       message: 'Straighten your back, pull shoulders back',
       measurements: `Forward lean: ${(shoulderMidpoint.z - hipMidpoint.z).toFixed(3)}`,
@@ -328,7 +325,7 @@ function checkPosture(landmarks) {
   
   if (noseToShoulderDist > idealNoseToShoulderDist) {
     issues.push({
-      type: 'Forward Head',
+      type: 'Slouching',
       severity: ((noseToShoulderDist - idealNoseToShoulderDist) * 15), // increased multiplier from 10 to 15
       message: 'Chin back slightly',
       measurements: `Head forward by: ${(noseToShoulderDist - idealNoseToShoulderDist).toFixed(3)}`,
@@ -441,7 +438,7 @@ function averagePostureStatus(samples) {
         type,
         severity: data.severity / data.count,
         message: data.message,
-        measurements: `Detected in ${data.count}/${samples.length} samples over ${Math.round(samples.length * CHECK_INTERVAL / 1000)} seconds`
+        measurements: `Detected in ${data.count}/${samples.length} samples over ${Math.round(samples.length * CHECK_INTERVAL / 1000)} seconds` // This needs to be recalculated
       });
     }
   });
