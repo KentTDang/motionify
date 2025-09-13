@@ -1,16 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 
+const CHECK_INTERVAL = 10000;  // Check every 10 seconds
+const SAMPLES_NEEDED = 30;     // Keep 30 samples (5 minutes worth of data)
+const BAD_POSTURE_THRESHOLD = 0.7; // 70% of samples must show an issue to trigger warning
+
 export default function App() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const streamRef = useRef(null);
   const rafRef = useRef(0);
+  const samplesRef = useRef([]);
 
   const [status, setStatus] = useState("idle");
   const [err, setErr] = useState("");
   const [stageSize, setStageSize] = useState({ w: 800, h: 600 });
+  const [postureStatus, setPostureStatus] = useState({ status: 'Good', details: [] });
+  const [lastCheckTime, setLastCheckTime] = useState(0);
 
   useEffect(() => {
     let canceled = false;
@@ -78,8 +85,31 @@ export default function App() {
 
           const now = performance.now();
           const result = lm.detectForVideo(v, now);
-          drawFrame(c, v, result);
+          
+          // Check posture
+          if (result.landmarks?.[0]) {
+            const currentPosture = checkPosture(result.landmarks[0]);
+            if (currentPosture) {
+              // Add current sample
+              samplesRef.current.push(currentPosture);
+              // Keep only last SAMPLES_NEEDED samples
+              if (samplesRef.current.length > SAMPLES_NEEDED) {
+                samplesRef.current.shift();
+              }
+              
+              // Only update display if enough time has passed
+              if (now - lastCheckTime >= CHECK_INTERVAL && samplesRef.current.length >= SAMPLES_NEEDED) {
+                // Average the samples
+                const averagedStatus = averagePostureStatus(samplesRef.current);
+                setPostureStatus(averagedStatus);
+                setLastCheckTime(now);
+                // Clear samples after using them
+                samplesRef.current = [];
+              }
+            }
+          }
 
+          drawFrame(c, v, result);
           rafRef.current = requestAnimationFrame(tick);
         };
 
@@ -105,6 +135,7 @@ export default function App() {
     };
   }, []);
 
+  // Update the return statement to include posture feedback
   return (
     <div style={styles.page}>
       <div style={styles.toolbar}>
@@ -116,6 +147,34 @@ export default function App() {
         {/* Hidden DOM video — we draw it into the canvas for exact alignment */}
         <video ref={videoRef} playsInline muted style={styles.videoHidden} />
         <canvas ref={canvasRef} style={styles.canvas} />
+      </div>
+
+      <div style={styles.postureStatus}>
+        <h3 style={{ color: postureStatus.status === 'Good Posture' ? '#4CAF50' : '#FF5722' }}>
+          {postureStatus.status}
+        </h3>
+        
+        {postureStatus.details.map((issue, i) => (
+          <div key={i} style={{
+            backgroundColor: issue.severity > 5 ? '#FFEBEE' : '#FFF3E0',
+            padding: '8px 12px',
+            margin: '4px 0',
+            borderRadius: '4px',
+            borderLeft: `4px solid ${issue.severity > 5 ? '#F44336' : '#FF9800'}`
+          }}>
+            <strong>{issue.type}</strong>
+            <div>{issue.message}</div>
+            <div style={{ fontSize: '0.9em', color: '#666' }}>{issue.measurements}</div>
+          </div>
+        ))}
+        
+        {postureStatus.measurements && (
+          <div style={{ marginTop: '12px', fontSize: '0.9em', color: '#666' }}>
+            <div>Nose-Shoulder Distance: {postureStatus.measurements.noseToShoulderDistance}</div>
+            <div>Vertical Alignment: {postureStatus.measurements.verticalAlignment}</div>
+            <div>Neck Angle: {postureStatus.measurements.neckAngle}°</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -203,6 +262,197 @@ function drawLandmarksAndSkeleton(ctx, landmarks, vw, vh) {
   });
 }
 
+// First, update the calculateAngle function for more accurate angle calculation
+function calculateAngle(a, b, c) {
+  const ab = { x: b.x - a.x, y: b.y - a.y };
+  const cb = { x: b.x - c.x, y: b.y - c.y };
+  
+  const dot = (ab.x * cb.x + ab.y * cb.y);
+  const cross = (ab.x * cb.y - ab.y * cb.x);
+  
+  const angle = Math.atan2(cross, dot);
+  return Math.abs(angle * (180.0 / Math.PI));
+}
+
+function checkPosture(landmarks) {
+  if (!landmarks?.length) return null;
+  
+  const nose = landmarks[0];
+  const leftShoulder = landmarks[11];
+  const rightShoulder = landmarks[12];
+  const leftHip = landmarks[23];
+  const rightHip = landmarks[24];
+  const leftEar = landmarks[7];
+  const rightEar = landmarks[8];
+  
+  const issues = [];
+  
+  // Calculate midpoints
+  const shoulderMidpoint = {
+    x: (leftShoulder.x + rightShoulder.x) / 2,
+    y: (leftShoulder.y + rightShoulder.y) / 2,
+    z: (leftShoulder.z + rightShoulder.z) / 2
+  };
+  
+  const hipMidpoint = {
+    x: (leftHip.x + rightHip.x) / 2,
+    y: (leftHip.y + rightHip.y) / 2,
+    z: (leftHip.z + rightHip.z) / 2
+  };
+  
+  // Check uneven shoulders - compare y positions with less sensitivity
+  const shoulderHeightDiff = Math.abs(leftShoulder.y - rightShoulder.y);
+  if (shoulderHeightDiff > 0.08) { // increased threshold from 0.05 to 0.08
+    issues.push({
+      type: 'Uneven Shoulders',
+      severity: shoulderHeightDiff * 15, // reduced multiplier from 20 to 15
+      message: 'Level your shoulders',
+      measurements: `Height difference: ${shoulderHeightDiff.toFixed(3)}`,
+    });
+  }
+  
+  // Check slouching with more sensitivity
+  const isSlouchingForward = shoulderMidpoint.z - hipMidpoint.z > 0.15;
+  if (isSlouchingForward) {
+    issues.push({
+      type: 'Slouching',
+      severity: 8,
+      message: 'Straighten your back, pull shoulders back',
+      measurements: `Forward lean: ${(shoulderMidpoint.z - hipMidpoint.z).toFixed(3)}`,
+    });
+  }
+  
+  // Forward head posture - increased sensitivity
+  const noseToShoulderDist = Math.abs(nose.x - shoulderMidpoint.x);
+  const idealNoseToShoulderDist = 0.05; // reduced from 0.07 to 0.05 for more sensitivity
+  
+  if (noseToShoulderDist > idealNoseToShoulderDist) {
+    issues.push({
+      type: 'Forward Head',
+      severity: ((noseToShoulderDist - idealNoseToShoulderDist) * 15), // increased multiplier from 10 to 15
+      message: 'Chin back slightly',
+      measurements: `Head forward by: ${(noseToShoulderDist - idealNoseToShoulderDist).toFixed(3)}`,
+    });
+  }
+  
+  // Neck tilt - calculate angle between ears and shoulders
+  const neckTiltAngle = calculateAngle(
+    { x: leftEar.x, y: leftEar.y },
+    shoulderMidpoint,
+    { x: rightEar.x, y: rightEar.y }
+  );
+  
+  // Only warn if neck tilt is extreme (> 35 degrees)
+  if (neckTiltAngle > 35) {
+    issues.push({
+      type: 'Extreme Neck Tilt',
+      severity: (neckTiltAngle - 35) / 10,
+      message: 'Try raising your screen height',
+      measurements: `Tilt angle: ${neckTiltAngle.toFixed(1)}°`,
+    });
+  }
+  
+  // Calculate spine angle (between shoulders and hips)
+  const spineAngle = calculateAngle(
+    shoulderMidpoint,
+    hipMidpoint,
+    { x: hipMidpoint.x, y: hipMidpoint.y - 0.5 } // vertical reference point
+  );
+  
+  // Check forward lean by comparing shoulder and hip Z positions
+  const forwardLean = shoulderMidpoint.z - hipMidpoint.z;
+  const shoulderHipRatio = Math.abs(shoulderMidpoint.y - hipMidpoint.y);
+  
+  // Detect slouching using both spine angle and forward lean
+  if (spineAngle > 15 || forwardLean > 0.1) {
+    issues.push({
+      type: 'Slouching/Forward Lean',
+      severity: Math.max(spineAngle / 15, forwardLean * 10),
+      message: spineAngle > 15 ? 'Straighten your spine' : 'Pull shoulders back',
+      measurements: `Spine angle: ${spineAngle.toFixed(1)}°, Forward lean: ${forwardLean.toFixed(3)}`,
+    });
+  }
+  
+  // Check if shoulders are rolling forward
+  const shoulderRoll = (leftShoulder.z + rightShoulder.z) / 2 - hipMidpoint.z;
+  if (shoulderRoll > 0.08) {
+    issues.push({
+      type: 'Rounded Shoulders',
+      severity: shoulderRoll * 10,
+      message: 'Pull shoulders back and down',
+      measurements: `Shoulder roll: ${shoulderRoll.toFixed(3)}`,
+    });
+  }
+
+  return {
+    status: issues.length === 0 ? 'Good Posture' : 'Posture Needs Attention',
+    details: issues,
+    measurements: {
+      spineAngle: spineAngle.toFixed(1),
+      forwardLean: forwardLean.toFixed(3),
+      shoulderRoll: shoulderRoll.toFixed(3),
+      noseToShoulderDistance: noseToShoulderDist.toFixed(3),
+      shoulderHeightDiff: shoulderHeightDiff.toFixed(3),
+      neckAngle: neckTiltAngle.toFixed(1)
+    }
+  };
+}
+
+// New function to average posture status over multiple samples
+function averagePostureStatus(samples) {
+  // Count issues by type
+  const issuesCounts = {};
+  const measurementsSum = {
+    spineAngle: 0,
+    forwardLean: 0,
+    shoulderRoll: 0,
+    noseToShoulderDistance: 0,
+    shoulderHeightDiff: 0,
+    neckAngle: 0
+  };
+  
+  samples.forEach(sample => {
+    // Sum up measurements
+    Object.keys(measurementsSum).forEach(key => {
+      measurementsSum[key] += parseFloat(sample.measurements[key]);
+    });
+    
+    // Count issues
+    sample.details.forEach(issue => {
+      if (!issuesCounts[issue.type]) {
+        issuesCounts[issue.type] = { count: 0, severity: 0, message: issue.message };
+      }
+      issuesCounts[issue.type].count++;
+      issuesCounts[issue.type].severity += issue.severity;
+    });
+  });
+  
+  // Average measurements
+  const avgMeasurements = {};
+  Object.keys(measurementsSum).forEach(key => {
+    avgMeasurements[key] = (measurementsSum[key] / samples.length).toFixed(3);
+  });
+  
+  // Convert issue counts to details array - now requires 70% of samples to show an issue
+  const details = [];
+  Object.entries(issuesCounts).forEach(([type, data]) => {
+    if (data.count > samples.length * BAD_POSTURE_THRESHOLD) { 
+      details.push({
+        type,
+        severity: data.severity / data.count,
+        message: data.message,
+        measurements: `Detected in ${data.count}/${samples.length} samples over ${Math.round(samples.length * CHECK_INTERVAL / 1000)} seconds`
+      });
+    }
+  });
+  
+  return {
+    status: details.length === 0 ? 'Good Posture' : 'Poor Posture Detected Over Time',
+    details,
+    measurements: avgMeasurements
+  };
+}
+
 const styles = {
   page: {
     display: "flex",
@@ -226,4 +476,11 @@ const styles = {
     zIndex: 1,
     pointerEvents: "none",
   },
+  postureStatus: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  }
 };
