@@ -1,11 +1,37 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Electron Webcam</title>
-</head>
-<body>
-  <h1>Webcam Feed</h1>
-  <video id="webcam" autoplay playsinline width="640" height="480"></video>
-  <script src="renderer.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Motionify</title>
+  </head>
+  <body>
+    <div id="wrap">
+      <video id="webcam" autoplay playsinline muted></video>
+      <canvas id="output"></canvas>
+    </div>
+    
+    <div id="controls">
+      <button id="startBtn" onclick="startDetection()">Start Detection</button>
+      <button id="stopBtn" onclick="stopDetection()" disabled>Stop Detection</button>
+    </div>
+    
+    <!-- Load MediaPipe from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    
+    <!-- Debug script to check MediaPipe loading -->
+    <script>
+      window.addEventListener('load', () => {
+        console.log('MediaPipe objects available:', {
+          Pose: !!window.Pose,
+          Camera: !!window.Camera,
+          drawConnectors: !!window.drawConnectors,
+          drawLandmarks: !!window.drawLandmarks
+        });
+      });
+    </script>
+    
+    <script src="renderer.js"></script>
+  </body>
 </html>
