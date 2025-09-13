@@ -524,7 +524,7 @@ function checkPosture(landmarks) {
   }
   
   const noseToShoulderDist = Math.abs(nose.x - shoulderMidpoint.x);
-  const idealNoseToShoulderDist = 0.05;
+  const idealNoseToShoulderDist = 0.02;
   
   if (noseToShoulderDist > idealNoseToShoulderDist) {
     issues.push({
