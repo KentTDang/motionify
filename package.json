@@ -1,15 +1,41 @@
 {
   "name": "motionify",
   "version": "1.0.0",
-  "description": "JHU HopHacks 2025",
+  "description": "JHU HopHacks 2025 - Posture Monitoring App Interface",
   "main": "src/index.js",
+  "homepage": "./",
   "scripts": {
-    "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron ."
   },
   "author": "Kent Dang, Pearce Packman, Chaoping Li",
   "license": "ISC",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/drawing_utils": "^0.3.1675466124",
+    "@mediapipe/pose": "^0.5.1675469404",
+    "react-webcam": "^7.2.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "concurrently": "^9.2.1",
+    "electron-is-dev": "^3.0.1",
+    "wait-on": "^8.0.5",
     "electron": "^38.1.0"
   },
   "dependencies": {
