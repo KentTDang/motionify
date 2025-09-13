@@ -37,5 +37,11 @@
     "electron-is-dev": "^3.0.1",
     "wait-on": "^8.0.5",
     "electron": "^38.1.0"
+  },
+  "dependencies": {
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/drawing_utils": "^0.3.1675466124",
+    "@mediapipe/pose": "^0.5.1675469404",
+    "react-webcam": "^7.2.0"
   }
 }
