@@ -3,7 +3,7 @@ import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import Header from "./components/Header";
 import './index.css'; // Import the CSS file where the global styles are defined
 
-const CHECK_INTERVAL = 1000; // Check every 1 second
+const CHECK_INTERVAL = 1; // Check every 1 second
 const SAMPLES_NEEDED = 30;
 const BAD_POSTURE_THRESHOLD = 0.7;
 
@@ -118,26 +118,26 @@ export default function App() {
           const now = performance.now();
           const result = lm.detectForVideo(v, now);
 
+          const pose = result?.landmarks?.[0];
           // --- analysis branch: exercise vs posture ---
-          if (now - lastPostureCheck >= CHECK_INTERVAL && result.landmarks?.[0]) {
-            if (activeTab === "exercise") {
-              const det = checkArmStretch(result.landmarks[0]);
-              updateExerciseTracking(det);
+          if (activeTab === "exercise") {
+            const det = checkArmStretch(pose); // safe now; function will guard too
+            updateExerciseTracking(det);
+            setLastCheckTime(now);
+          } else {
+            const currentPosture = checkPosture(pose); // checkPosture already guards
+            if (currentPosture) {
+              updatePostureTracking(currentPosture);
+              samplesRef.current.push(currentPosture);
+              if (samplesRef.current.length > SAMPLES_NEEDED) samplesRef.current.shift();
+              const averagedStatus = averagePostureStatus(samplesRef.current);
+              setPostureStatus(averagedStatus);
               setLastCheckTime(now);
-            } else {
-              const currentPosture = checkPosture(result.landmarks[0]);
-              if (currentPosture) {
-                updatePostureTracking(currentPosture);
-                samplesRef.current.push(currentPosture);
-                if (samplesRef.current.length > SAMPLES_NEEDED) samplesRef.current.shift();
-                const averagedStatus = averagePostureStatus(samplesRef.current);
-                setPostureStatus(averagedStatus);
-                setLastCheckTime(now);
-                window.electron?.sendPostureStatus(averagedStatus.status);
-              }
+              window.electron?.sendPostureStatus(averagedStatus.status);
             }
             lastPostureCheck = now;
           }
+            lastPostureCheck = now;
 
           updateSessionStats();
           drawFrame(c, v, result);
@@ -245,25 +245,70 @@ export default function App() {
       }
     }
   };
+  const lastPostureRef = useRef("Good Posture");
 
-  const updateSessionStats = () => {
-    const now = Date.now();
-    const sessionDuration = now - sessionStartRef.current;
-    const currentBadDuration = badPostureStartRef.current ? now - badPostureStartRef.current : 0;
+const [lastTrayState, setLastTrayState] = useState("Good Posture");
 
-    setSessionStats((prev) => {
-      const badTime = prev.badPostureTime + (badPostureStartRef.current ? 1000 : 0);
-      const goodTime = Math.max(0, sessionDuration - badTime);
+useEffect(() => {
+  const newState =
+    sessionStats.currentBadPostureDuration > 0 ? "Bad Posture" : "Good Posture";
 
-      return {
-        ...prev,
-        totalTime: sessionDuration,
-        goodPostureTime: Math.max(0, goodTime),
-        currentBadPostureDuration: currentBadDuration,
-        averagePostureScore: Math.round(((goodTime / Math.max(1, sessionDuration)) * 100) || 100),
-      };
-    });
-  };
+  if (newState !== lastTrayState) {
+    window.electron?.sendPostureStatus(newState);
+    setLastTrayState(newState);
+  }
+}, [sessionStats.currentBadPostureDuration, lastTrayState]);
+
+
+// ⏰ Track last notifications
+const lastNotifySecondRef = useRef(0);
+const lastBadPostureNotifyRef = useRef(0);
+
+const NOTIFY_INTERVAL = 20;  // periodic reminders
+const BAD_POSTURE_NOTIFY_INTERVAL = 30; // seconds
+
+// inside updateSessionStats
+const updateSessionStats = () => {
+  const now = Date.now();
+  const sessionDuration = now - sessionStartRef.current;
+  const currentSecond = Math.floor(sessionDuration / 1000);
+
+  // 🔔 Stretch reminder every NOTIFY_INTERVAL seconds
+  if (currentSecond - lastNotifySecondRef.current >= NOTIFY_INTERVAL) {
+    window.electron?.sendPostureStatus("Stretch Reminder");
+    lastNotifySecondRef.current = currentSecond;
+  }
+
+  // 🔔 Bad posture alert if slouching too long
+  if (badPostureStartRef.current) {
+    const badDurationSec = Math.floor((now - badPostureStartRef.current) / 1000);
+    if (badDurationSec - lastBadPostureNotifyRef.current >= BAD_POSTURE_NOTIFY_INTERVAL) {
+      window.electron?.sendPostureStatus("Bad Posture Alert");
+      lastBadPostureNotifyRef.current = badDurationSec;
+    }
+  }
+
+  // ✅ Update session stats
+  setSessionStats(prev => {
+    // If bad posture is currently active, count elapsed time since last tick
+    const badIncrement = badPostureStartRef.current ? CHECK_INTERVAL : 0;
+
+    const newBadTime = prev.badPostureTime + badIncrement;
+    const newGoodTime = sessionDuration - newBadTime;
+
+    return {
+      ...prev,
+      totalTime: sessionDuration,
+      goodPostureTime: newGoodTime,
+      badPostureTime: newBadTime,
+      currentBadPostureDuration: badPostureStartRef.current
+        ? now - badPostureStartRef.current
+        : 0,
+      averagePostureScore: Math.round(((newGoodTime / sessionDuration) * 100) || 100)
+    };
+  });
+};
+
 
   const formatTime = (ms) => {
     const seconds = Math.floor(ms / 1000);
@@ -279,6 +324,279 @@ export default function App() {
     }
   };
 
+  const [sessionTime, setSessionTime] = useState(.5 * 60); // 30 in seconds
+  const [isSessionRunning, setIsSessionRunning] = useState(false);
+
+  useEffect(() => {
+  if (!isSessionRunning) return;
+
+  const interval = setInterval(() => {
+    setSessionTime(prev => {
+      if (prev <= 1) {
+        clearInterval(interval);
+        setIsSessionRunning(false);
+
+        // 🔔 Tell main process to show notification
+        window.electron?.sendPostureStatus("Session Ended");
+
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [isSessionRunning]);
+
+  const getPostureColor = (score) => {
+    if (theme === 'dark') {
+      if (score >= 80) return '#10B981';
+      if (score >= 60) return '#F59E0B';
+      return '#EF4444';
+    } else {
+      if (score >= 80) return '#059669';
+      if (score >= 60) return '#d97706';
+      return '#dc2626';
+    }
+  };
+
+  const resetStats = () => {
+    sessionStartRef.current = Date.now();
+    badPostureStartRef.current = null;
+    setExerciseStatus({ stretching: false, holdMs: 0, reps: 0, kind: null, message: "" });
+    setSessionStats({
+      totalTime: 0,
+      goodPostureTime: 0,
+      badPostureTime: 0,
+      currentBadPostureDuration: 0,
+      longestBadPostureStreak: 0,
+      postureBreaks: 0,
+      averagePostureScore: 100,
+    });
+  };
+
+  const handleTabChange = (tabId) => setActiveTab(tabId);
+
+
+  const handleThemeToggle = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const styles = getStyles(theme);
+
+  // Render different right panel content based on active tab
+  const renderRightPanelContent = () => {
+    switch (activeTab) {
+      case "exercise":
+  return (
+    <>
+      <div style={styles.statusCard}>
+        <h3 style={styles.cardTitle}>Arm Stretch Tracker</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Status</span>
+            <span
+              style={{
+                ...styles.statValue,
+                color: exerciseStatus.stretching ? "#10B981" : "#9CA3AF",
+              }}
+            >
+              {exerciseStatus.stretching ? "Stretching" : "Idle"}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Kind</span>
+            <span style={styles.statValue}>
+                    {exerciseStatus.kind ? (exerciseStatus.kind === "overhead" ? "Overhead" : "T-pose") : "—"}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Current Hold</span>
+                  <span style={styles.statValue}>{Math.round(exerciseStatus.holdMs / 1000)}s</span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Completed Reps</span>
+            <span style={styles.statValue}>{exerciseStatus.reps}</span>
+          </div>
+        </div>
+        {exerciseStatus.message && (
+                <div style={{ marginTop: 12, color: "#D1D5DB", fontSize: 14 }}>💡 {exerciseStatus.message}</div>
+              )}
+            </div>
+
+
+            {/* Exercise Tips */}
+            <div style={styles.exerciseCard}>
+              <h3 style={styles.cardTitle}>Stretch Tips</h3>
+              <div style={styles.exerciseList}>
+                <div style={styles.exerciseItem}>
+                  <h4 style={styles.exerciseTitle}>Overhead Stretch</h4>
+                  <p style={styles.exerciseDescription}>
+                    Straighten elbows and raise wrists above head level. Hold 10–30s, breathe evenly.
+                  </p>
+                </div>
+                <div style={styles.exerciseItem}>
+                  <h4 style={styles.exerciseTitle}>T-Pose Stretch</h4>
+                  <p style={styles.exerciseDescription}>
+                    Keep elbows straight, wrists near shoulder height, and reach wide to the sides.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+
+      case "data":
+  return (
+    <>
+      {/* ✅ Live Posture Card (driven by timer) */}
+      <div
+        style={{
+          ...styles.statusCard,
+          border: `2px solid ${
+            sessionStats.currentBadPostureDuration > 0 ? "#EF4444" : "#22C55E"
+          }`,
+          backgroundColor:
+            sessionStats.currentBadPostureDuration > 0 ? "#FEE2E2" : "#DCFCE7",
+          marginBottom: 16,
+        }}
+      >
+        <h3
+          style={{
+            ...styles.cardTitle,
+            color: sessionStats.currentBadPostureDuration > 0 ? "#B91C1C" : "#166534",
+          }}
+        >
+          {sessionStats.currentBadPostureDuration > 0
+            ? "⚠️ Poor Posture"
+            : "✅ Good Posture"}
+        </h3>
+        <p
+          style={{
+            color: sessionStats.currentBadPostureDuration > 0 ? "#B91C1C" : "#166534",
+            fontWeight: "600",
+          }}
+        >
+          {sessionStats.currentBadPostureDuration > 0
+            ? `Your posture needs correction. You’ve been slouching for ${Math.round(
+                sessionStats.currentBadPostureDuration / 1000
+              )}s`
+            : "Keep it up! You're sitting well."}
+        </p>
+      </div>
+
+      {/* 📊 Session Statistics */}
+      <div style={styles.statsCard}>
+        <h3 style={styles.cardTitle}>Session Statistics</h3>
+        <div style={styles.statsGrid}>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Session Time</span>
+            <span style={styles.statValue}>{formatTime(sessionStats.totalTime)}</span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Good Posture</span>
+            <span style={{ ...styles.statValue, color: getPostureColor(100) }}>
+              {formatTime(sessionStats.goodPostureTime)}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Bad Posture</span>
+            <span style={{ ...styles.statValue, color: getPostureColor(0) }}>
+              {formatTime(sessionStats.badPostureTime)}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Posture Breaks</span>
+            <span style={styles.statValue}>{sessionStats.postureBreaks}</span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Longest Bad Streak</span>
+            <span style={styles.statValue}>
+              {formatTime(sessionStats.longestBadPostureStreak)}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Average Score</span>
+            <span
+              style={{
+                ...styles.statValue,
+                color: getPostureColor(sessionStats.averagePostureScore),
+              }}
+            >
+              {sessionStats.averagePostureScore}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 📏 Detailed Measurements */}
+      {postureStatus.measurements && (
+        <div style={styles.measurementsCard}>
+          <h3 style={styles.cardTitle}>Detailed Measurements</h3>
+          <div style={styles.measurementsGrid}>
+            <div style={styles.measurementItem}>
+              <span style={styles.measurementLabel}>Spine Angle:</span>
+              <span style={styles.measurementValue}>
+                {postureStatus.measurements.spineAngle}°
+              </span>
+            </div>
+            <div style={styles.measurementItem}>
+              <span style={styles.measurementLabel}>Forward Lean:</span>
+              <span style={styles.measurementValue}>
+                {postureStatus.measurements.forwardLean}
+              </span>
+            </div>
+            <div style={styles.measurementItem}>
+              <span style={styles.measurementLabel}>Shoulder Roll:</span>
+              <span style={styles.measurementValue}>
+                {postureStatus.measurements.shoulderRoll}
+              </span>
+            </div>
+            <div style={styles.measurementItem}>
+              <span style={styles.measurementLabel}>Neck Angle:</span>
+              <span style={styles.measurementValue}>
+                {postureStatus.measurements.neckAngle}°
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+
+
+
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div style={styles.page}>
+
+      {/* Header with Tabs */}
+      <Header 
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onResetStats={resetStats}
+        theme={theme}
+        onThemeToggle={handleThemeToggle}
+      />
+
+      {/* Status Bar */}
+      <div style={styles.statusBar}>
+        <span style={styles.status}>
+          Status: <strong style={styles.statusText}>{status}</strong>
+          {err && <span style={styles.errorText}> • {err}</span>}
+        </span>
+      </div>
+
+      <div style={styles.mainContent}>
+        <div style={styles.leftPanel}>
+          <div style={styles.videoContainer}>
+            {/* <h3 style={styles.sectionTitle}>Camera Feed</h3> */}
   const getPostureColor = (score) => {
     if (theme === 'dark') {
       if (score >= 80) return '#10B981';
@@ -745,7 +1063,7 @@ function checkPosture(landmarks) {
   }
 
   const noseToShoulderDist = Math.abs(nose.x - shoulderMidpoint.x);
-  const idealNoseToShoulderDist = 0.05;
+  const idealNoseToShoulderDist = 0.025;
 
   if (noseToShoulderDist > idealNoseToShoulderDist) {
     issues.push({
@@ -877,12 +1195,13 @@ function jointAngle(a, b, c) {
 }
 
 function checkArmStretch(pts) {
-  const Ls = pts[11],
-    Rs = pts[12]; // shoulders
-  const Le = pts[13],
-    Re = pts[14]; // elbows
-  const Lw = pts[15],
-    Rw = pts[16]; // wrists
+  if (!pts || !Array.isArray(pts) || pts.length < 17) {
+    return { stretching: false, kind: null, message: "No pose detected" };
+  }
+
+  const Ls = pts[11], Rs = pts[12];
+  const Le = pts[13], Re = pts[14];
+  const Lw = pts[15], Rw = pts[16];
   const nose = pts[0];
   if (!Ls || !Rs || !Le || !Re || !Lw || !Rw || !nose) {
     return { stretching: false, kind: null, message: "Missing landmarks" };
@@ -910,9 +1229,9 @@ function checkArmStretch(pts) {
   if (elbowsStraight && wristsNearShoulderY && wristsWide) {
     return { stretching: true, kind: "tpose", message: "T-pose / lateral arm stretch" };
   }
-
   return { stretching: false, kind: null, message: "" };
 }
+
 
 
 
@@ -1056,24 +1375,6 @@ const styles = {
   },
   statusLabel: { fontSize: "14px", color: "#9CA3AF" },
   statusValue: { fontSize: "14px", fontWeight: "600", color: "#FFFFFF" },
-
-  settingsCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151",
-  },
-  settingsContent: { display: "flex", flexDirection: "column", gap: "24px" },
-  settingItem: {
-    padding: "20px",
-    backgroundColor: "#111111",
-    borderRadius: "8px",
-    border: "1px solid #374151",
-  },
-  settingTitle: { margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#FFFFFF" },
-  settingDescription: { margin: "0 0 16px 0", fontSize: "14px", color: "#9CA3AF", lineHeight: "1.5" },
-  settingControl: { display: "flex", alignItems: "center" },
   slider: {
     width: "100%",
     height: "6px",
@@ -1127,7 +1428,6 @@ const getStyles = (theme) => {
       alignItems: "center",
       padding: "6px 12px",
       backgroundColor: isDark ? "#0f0f0f" : "#f8f9fa",
-      borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
       fontSize: "12px",
       fontWeight: "400",
       letterSpacing: "0.5px",

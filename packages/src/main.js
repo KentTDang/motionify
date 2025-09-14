@@ -1,79 +1,117 @@
-const { app, BrowserWindow, Tray, ipcMain, nativeImage } = require('electron');
+// main.js
+const { app, BrowserWindow, Tray, nativeImage, Notification, ipcMain } = require('electron');
 const path = require('path');
 
-// Keep references to prevent garbage collection
 let mainWindow = null;
 let tray = null;
+let stretchIntervalId = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1024,        // Set your preferred width
-    height: 768,        // Set your preferred height
-    minWidth: 800,      // Minimum window size
-    minHeight: 600,     // Minimum window size
+    width: 1024,
+    height: 768,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false, // keep timers/camera logic alive when hidden/minimized
       preload: path.join(__dirname, 'preload.js')
     }
   });
 
   mainWindow.loadURL('http://localhost:3000');
-  
-  // Uncomment to remember window size and position
-  // mainWindow.on('close', () => {
-  //   const bounds = mainWindow.getBounds();
-  //   storage.set('windowBounds', bounds);
-  // });
+  // Optional: minimize-to-tray
+  mainWindow.on('minimize', (e) => {
+    e.preventDefault();
+    mainWindow.hide();
+  });
+
 }
 
 function createTray() {
   const iconPath = path.join(__dirname, 'assets', 'tray-good-Template.png');
-  
-  // Create a native image and resize it with specific options
-  const icon = nativeImage.createFromPath(iconPath).resize({
-    width: 16,
-    height: 16,
-    quality: 'best'
-  });
-  
+  const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16, quality: 'best' });
   tray = new Tray(icon);
-  tray.setToolTip('Posture Status: Good');
+  tray.setToolTip('Stretch reminders active');
+
+  // Show on double-click
+  tray.on('double-click', () => {
+    if (mainWindow) mainWindow.show();
+  });
 }
 
+function setTray(kind /* 'good' | 'bad' */) {
+  if (!tray) return;
+  const iconFile = kind === 'bad' ? 'tray-bad-Template.png' : 'tray-good-Template.png';
+  const tooltip  = kind === 'bad' ? 'Bad Posture' : 'Good Posture';
+
+  const newIcon = nativeImage
+    .createFromPath(path.join(__dirname, 'assets', iconFile))
+    .resize({ width: 16, height: 16, quality: 'best' });
+
+  tray.setImage(newIcon);
+  tray.setToolTip(`Posture Status: ${tooltip}`);
+}
+
+// ---- posture → tray mapping with stickiness ----
+const BAD_STATUS = new Set([
+  'Bad Posture',
+  'Bad Posture Alert',
+  'Posture Needs Attention',
+  'Poor Posture Detected Over Time'
+  // add any other renderer strings you consider "bad"
+]);
+
+let trayIsBad = false;         // what the tray is currently showing
+let lastAppliedAt = 0;         // when we last changed the tray
+const STICK_MS = 4000;         // don’t flip again within 4s
+
+ipcMain.on("posture-status", (event, status) => {
+  if (!tray) return;
+
+  let iconFile = status === "Bad Posture"
+    ? "tray-bad-Template.png"
+    : "tray-good-Template.png";
+
+  const newIcon = nativeImage
+    .createFromPath(path.join(__dirname, "assets", iconFile))
+    .resize({ width: 16, height: 16, quality: "best" });
+
+  tray.setImage(newIcon);
+  tray.setToolTip(`Posture Status: ${status}`);
+});
+
+
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.motionify.stretchreminder');
+  }
+
   createWindow();
   createTray();
 
-  // Listen for posture updates from renderer
-  ipcMain.on('posture-status', (event, status) => {
-    if (!tray) return;
-    
-    const isGoodPosture = status === 'Good Posture';
-    const iconName = isGoodPosture ? 'tray-good-Template.png' : 'tray-bad-Template.png';
-    const newIconPath = path.join(__dirname, 'assets', iconName);
-    
-    // Resize the new icon consistently
-    const newIcon = nativeImage.createFromPath(newIconPath).resize({
-      width: 16,
-      height: 16,
-      quality: 'best'
-    });
-    
-    tray.setImage(newIcon);
-    tray.setToolTip(`Posture Status: ${status}`);
-  });
+  // 🔔 Periodic stretch reminder (change interval to taste)
+  const TWO_MIN = 60 * 1000;
+  if (!stretchIntervalId) {
+    stretchIntervalId = setInterval(() => {
+      new Notification({
+        title: 'Time to Stretch!',
+        body: 'Stand up, move around, and reset your posture.',
+        silent: false
+      }).show();
+    }, TWO_MIN);
+  }
 });
 
-// Prevent window from being garbage collected
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  if (stretchIntervalId) {
+    clearInterval(stretchIntervalId);
+    stretchIntervalId = null;
   }
+  if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow();
-  }
+  if (mainWindow === null) createWindow();
 });

@@ -1,10 +1,15 @@
-import React from 'react';
+import React from "react";
 
-const Header = ({ activeTab, onTabChange, onResetStats, theme, onThemeToggle }) => {
+const Header = ({
+  activeTab,
+  onTabChange,
+  onResetStats,
+  theme,
+  onThemeToggle,
+}) => {
   const tabs = [
-    { id: 'data', label: 'DATA' },
-    { id: 'exercise', label: 'EXERCISE' },
-    { id: 'settings', label: 'SETTINGS' }
+    { id: "data", label: "DATA" },
+    { id: "exercise", label: "EXERCISE" },
   ];
 
   const styles = getStyles(theme);
@@ -15,22 +20,24 @@ const Header = ({ activeTab, onTabChange, onResetStats, theme, onThemeToggle }) 
         <h1 style={styles.title}>MOTIONIFY</h1>
         <div style={styles.headerButtons}>
           <button onClick={onThemeToggle} style={styles.themeButton}>
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {theme === "dark" ? "☀️" : "🌙"}
+
           </button>
           <button onClick={onResetStats} style={styles.resetButton}>
             RESET
           </button>
         </div>
       </div>
-      
+
       <div style={styles.tabsContainer}>
-        {tabs.map(tab => (
+        {tabs.map((tab) => (
+
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             style={{
               ...styles.tab,
-              ...(activeTab === tab.id ? styles.activeTab : {})
+              ...(activeTab === tab.id ? styles.activeTab : {}),
             }}
           >
             {tab.label}
@@ -42,19 +49,19 @@ const Header = ({ activeTab, onTabChange, onResetStats, theme, onThemeToggle }) 
 };
 
 const getStyles = (theme) => {
-  const isDark = theme === 'dark';
-  
+  const isDark = theme === "dark";
+
   return {
     header: {
       backgroundColor: isDark ? "#0f0f0f" : "#f8f9fa",
       padding: "16px 24px",
-      borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+      borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
     },
     headerContent: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: "16px"
+      marginBottom: "16px",
     },
     title: {
       margin: 0,
@@ -62,12 +69,12 @@ const getStyles = (theme) => {
       fontWeight: "700",
       color: isDark ? "#e4e4e7" : "#1f2937",
       letterSpacing: "2px",
-      fontFamily: "ui-monospace, 'Fira Code', monospace"
+      fontFamily: "ui-monospace, 'Fira Code', monospace",
     },
     headerButtons: {
       display: "flex",
       gap: "8px",
-      alignItems: "center"
+      alignItems: "center",
     },
     themeButton: {
       padding: "8px 12px",
@@ -75,10 +82,10 @@ const getStyles = (theme) => {
       color: isDark ? "#e4e4e7" : "#1f2937",
       border: `1px solid ${isDark ? "#3f3f46" : "#d1d5db"}`,
       cursor: "pointer",
-      fontSize: "14px",
+      fontSize: "10px",
       fontWeight: "600",
       borderRadius: "4px",
-      transition: "all 0.2s ease"
+      transition: "all 0.2s ease",
     },
     resetButton: {
       padding: "8px 16px",
@@ -90,11 +97,11 @@ const getStyles = (theme) => {
       fontWeight: "600",
       letterSpacing: "0.5px",
       textTransform: "uppercase",
-      transition: "all 0.2s ease"
+      transition: "all 0.2s ease",
     },
     tabsContainer: {
       display: "flex",
-      gap: "2px"
+      gap: "2px",
     },
     tab: {
       padding: "8px 16px",
@@ -105,13 +112,13 @@ const getStyles = (theme) => {
       fontSize: "10px",
       fontWeight: "600",
       transition: "all 0.2s ease",
-      letterSpacing: "0.5px"
+      letterSpacing: "0.5px",
     },
     activeTab: {
       color: isDark ? "#00ff88" : "#10b981",
       backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
-      borderColor: isDark ? "#00ff88" : "#10b981"
-    }
+      borderColor: isDark ? "#00ff88" : "#10b981",
+    },
   };
 };
 
