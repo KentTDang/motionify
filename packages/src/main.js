@@ -49,6 +49,32 @@ app.whenReady().then(() => {
       }).show();
     }, TWO_MIN);
   }
+  const { ipcMain } = require('electron');
+
+// 🟢 Update tray + notification based on posture
+ipcMain.on("posture-status", (event, status) => {
+  console.log("📩 posture-status:", status);
+
+  if (!tray) return;
+
+  let iconFile = "tray-good-Template.png";
+  let tooltip = "Good Posture";
+
+  if (status === "Bad Posture") {
+    iconFile = "tray-bad-Template.png";
+    tooltip = "Bad Posture";
+
+    
+  }
+
+  const newIcon = nativeImage
+    .createFromPath(path.join(__dirname, "assets", iconFile))
+    .resize({ width: 16, height: 16, quality: "best" });
+
+  tray.setImage(newIcon);
+  tray.setToolTip(`Posture Status: ${tooltip}`);
+});
+
 });
 
 
