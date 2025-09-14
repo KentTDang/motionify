@@ -36,10 +36,11 @@ export default function App() {
     alerts: []
   });
 
-  // New state for tab management
+  // New state for tab management and theme
   const [activeTab, setActiveTab] = useState('exercise');
+  const [theme, setTheme] = useState('dark');
 
-  // ...existing code... (all useEffect and helper functions remain the same)
+  // ...existing useEffect and helper functions remain the same...
   useEffect(() => {
     let canceled = false;
     let lastPostureCheck = 0;
@@ -177,7 +178,8 @@ export default function App() {
         const badDuration = now - badPostureStartRef.current;
         setSessionStats(prev => ({
           ...prev,
-          longestBadPostureStreak: Math.max(prev.longestBadPostureStreak, badDuration)
+          longestBadPostureStreak: Math.max(prev.longestBadPostureStreak, badDuration),
+          badPostureTime: prev.badPostureTime + badDuration
         }));
         badPostureStartRef.current = null;
       }
@@ -190,14 +192,12 @@ export default function App() {
     const currentBadDuration = badPostureStartRef.current ? now - badPostureStartRef.current : 0;
     
     setSessionStats(prev => {
-      const badTime = prev.badPostureTime + (badPostureStartRef.current ? 1000 : 0);
-      const goodTime = sessionDuration - badTime;
+      const goodTime = sessionDuration - (prev.badPostureTime + currentBadDuration);
       
       return {
         ...prev,
         totalTime: sessionDuration,
-        goodPostureTime: goodTime,
-        badPostureTime: badTime,
+        goodPostureTime: Math.max(0, goodTime),
         currentBadPostureDuration: currentBadDuration,
         averagePostureScore: Math.round(((goodTime / sessionDuration) * 100) || 100)
       };
@@ -219,9 +219,15 @@ export default function App() {
   };
 
   const getPostureColor = (score) => {
-    if (score >= 80) return '#10B981';
-    if (score >= 60) return '#F59E0B';
-    return '#EF4444';
+    if (theme === 'dark') {
+      if (score >= 80) return '#10B981';
+      if (score >= 60) return '#F59E0B';
+      return '#EF4444';
+    } else {
+      if (score >= 80) return '#059669';
+      if (score >= 60) return '#d97706';
+      return '#dc2626';
+    }
   };
 
   const resetStats = () => {
@@ -241,6 +247,12 @@ export default function App() {
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
   };
+
+  const handleThemeToggle = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const styles = getStyles(theme);
 
   // Render different right panel content based on active tab
   const renderRightPanelContent = () => {
@@ -262,10 +274,10 @@ export default function App() {
               
               <div style={{
                 ...styles.postureStatus,
-                borderColor: postureStatus.status === 'Good Posture' ? '#10B981' : '#EF4444'
+                borderColor: postureStatus.status === 'Good Posture' ? getPostureColor(100) : getPostureColor(0)
               }}>
                 <div style={{
-                  color: postureStatus.status === 'Good Posture' ? '#10B981' : '#EF4444',
+                  color: postureStatus.status === 'Good Posture' ? getPostureColor(100) : getPostureColor(0),
                   fontWeight: 'bold',
                   marginBottom: '8px',
                   fontSize: '16px'
@@ -288,13 +300,13 @@ export default function App() {
                 {postureStatus.details.map((issue, i) => (
                   <div key={i} style={{
                     ...styles.issueItem,
-                    borderLeft: `4px solid ${issue.severity > 5 ? '#EF4444' : '#F59E0B'}`
+                    borderLeft: `3px solid ${issue.severity > 5 ? getPostureColor(0) : getPostureColor(60)}`
                   }}>
                     <div style={styles.issueHeader}>
                       <span style={styles.issueType}>{issue.type}</span>
                       <span style={{
                         ...styles.severityBadge,
-                        backgroundColor: issue.severity > 5 ? '#EF4444' : '#F59E0B'
+                        backgroundColor: issue.severity > 5 ? getPostureColor(0) : getPostureColor(60)
                       }}>
                         {Math.round(issue.severity)}/10
                       </span>
@@ -358,13 +370,13 @@ export default function App() {
                 </div>
                 <div style={styles.statItem}>
                   <span style={styles.statLabel}>Good Posture</span>
-                  <span style={{...styles.statValue, color: '#10B981'}}>
+                  <span style={{...styles.statValue, color: getPostureColor(100)}}>
                     {formatTime(sessionStats.goodPostureTime)}
                   </span>
                 </div>
                 <div style={styles.statItem}>
                   <span style={styles.statLabel}>Bad Posture</span>
-                  <span style={{...styles.statValue, color: '#EF4444'}}>
+                  <span style={{...styles.statValue, color: getPostureColor(0)}}>
                     {formatTime(sessionStats.badPostureTime)}
                   </span>
                 </div>
@@ -421,7 +433,7 @@ export default function App() {
                   <span style={styles.statusLabel}>Camera Status:</span>
                   <span style={{
                     ...styles.statusValue,
-                    color: status === 'running' ? '#10B981' : '#EF4444'
+                    color: status === 'running' ? getPostureColor(100) : getPostureColor(0)
                   }}>
                     {status}
                   </span>
@@ -435,7 +447,7 @@ export default function App() {
                 {err && (
                   <div style={styles.statusItem}>
                     <span style={styles.statusLabel}>Error:</span>
-                    <span style={{...styles.statusValue, color: '#EF4444'}}>{err}</span>
+                    <span style={{...styles.statusValue, color: getPostureColor(0)}}>{err}</span>
                   </div>
                 )}
               </div>
@@ -448,6 +460,16 @@ export default function App() {
           <div style={styles.settingsCard}>
             <h3 style={styles.cardTitle}>Settings</h3>
             <div style={styles.settingsContent}>
+              <div style={styles.settingItem}>
+                <h4 style={styles.settingTitle}>Theme</h4>
+                <p style={styles.settingDescription}>Switch between dark and light mode.</p>
+                <div style={styles.settingControl}>
+                  <button onClick={handleThemeToggle} style={styles.themeToggleButton}>
+                    {theme === 'dark' ? 'Switch to Light Mode ☀️' : 'Switch to Dark Mode 🌙'}
+                  </button>
+                </div>
+              </div>
+
               <div style={styles.settingItem}>
                 <h4 style={styles.settingTitle}>Detection Sensitivity</h4>
                 <p style={styles.settingDescription}>Adjust how sensitive the posture detection is.</p>
@@ -500,6 +522,8 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onResetStats={resetStats}
+        theme={theme}
+        onThemeToggle={handleThemeToggle}
       />
 
       {/* Status Bar */}
@@ -532,7 +556,7 @@ export default function App() {
   );
 }
 
-// ...existing code... (all helper functions remain the same)
+// ...existing helper functions remain the same...
 function prepareCanvas(canvas, cssW, cssH) {
   const dpr = window.devicePixelRatio || 1;
   canvas.style.width = `${cssW}px`;
@@ -778,386 +802,391 @@ function averagePostureStatus(samples) {
   };
 }
 
-const styles = {
-  page: {
-    display: "flex",
-    flexDirection: "column",
-    minHeight: "100vh",
-    fontFamily: "ui-sans-serif, system-ui, -apple-system",
-    backgroundColor: "#111111",
-    color: "#E5E7EB"
-  },
-  statusBar: {
-    display: "flex",
-    alignItems: "center",
-    padding: "8px 32px",
-    backgroundColor: "#1F1F1F",
-    borderBottom: "1px solid #374151"
-  },
-  status: {
-    fontSize: "14px",
-    color: "#9CA3AF"
-  },
-  statusText: {
-    color: "#FFFFFF"
-  },
-  errorText: {
-    color: "#EF4444"
-  },
-  mainContent: {
-    display: "flex",
-    flex: 1,
-    gap: "24px",
-    padding: "24px",
-    minHeight: "calc(100vh - 160px)"
-  },
-  leftPanel: {
-    flex: "1",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: "20px"
-  },
-  rightPanel: {
-    flex: "1",
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-    overflow: "auto"
-  },
-  sectionTitle: {
-    fontSize: "20px",
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: "20px",
-    textAlign: "center"
-  },
-  videoContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    width: "100%"
-  },
-  stage: {
-    position: "relative",
-    borderRadius: "16px",
-    overflow: "hidden",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
-    background: "#000000",
-    border: "2px solid #374151"
-  },
-  videoHidden: { 
-    display: "none" 
-  },
-  canvas: {
-    position: "absolute",
-    inset: 0,
-    zIndex: 1,
-    pointerEvents: "none",
-    transformOrigin: "top left"
-  },
-  statusCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151"
-  },
-  cardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px"
-  },
-  scoreCircle: {
-    width: "70px",
-    height: "70px",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#FFFFFF",
-    fontSize: "22px",
-    fontWeight: "bold",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)"
-  },
-  postureStatus: {
-    padding: "20px",
-    border: "2px solid",
-    borderRadius: "12px",
-    backgroundColor: "#111111"
-  },
-  alert: {
-    color: "#EF4444",
-    fontWeight: "600",
-    fontSize: "14px"
-  },
-  statsCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151"
-  },
-  cardTitle: {
-    margin: "0 0 20px 0",
-    fontSize: "20px",
-    fontWeight: "600",
-    color: "#FFFFFF"
-  },
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "16px"
-  },
-  statItem: {
-    display: "flex",
-    flexDirection: "column",
-    padding: "16px",
-    backgroundColor: "#111111",
-    borderRadius: "8px",
-    border: "1px solid #374151"
-  },
-  statLabel: {
-    fontSize: "12px",
-    color: "#9CA3AF",
-    fontWeight: "500",
-    marginBottom: "8px"
-  },
-  statValue: {
-    fontSize: "18px",
-    fontWeight: "700",
-    color: "#FFFFFF"
-  },
-  measurementsCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151"
-  },
-  measurementsGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "12px"
-  },
-  measurementItem: {
-    display: "flex",
-    flexDirection: "column",
-    padding: "12px",
-    backgroundColor: "#111111",
-    borderRadius: "8px",
-    border: "1px solid #374151"
-  },
-  measurementLabel: {
-    fontSize: "12px",
-    color: "#9CA3AF",
-    marginBottom: "4px"
-  },
-  measurementValue: {
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#FFFFFF"
-  },
-  issuesCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151"
-  },
-  issueItem: {
-    backgroundColor: "#111111",
-    padding: "16px 20px",
-    margin: "12px 0",
-    borderRadius: "12px",
-    border: "1px solid #374151"
-  },
-  issueHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "8px"
-  },
-  issueType: {
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#FFFFFF"
-  },
-  severityBadge: {
-    padding: "4px 8px",
-    borderRadius: "6px",
-    color: "#FFFFFF",
-    fontSize: "12px",
-    fontWeight: "bold"
-  },
-  issueMessage: {
-    fontSize: "14px",
-    color: "#D1D5DB",
-    marginBottom: "4px"
-  },
-  issueMeasurements: {
-    fontSize: "12px",
-    color: "#9CA3AF"
-  },
-  noIssuesCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "40px 24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151",
-    textAlign: "center"
-  },
-  noIssuesIcon: {
-    fontSize: "48px",
-    color: "#10B981",
-    marginBottom: "16px"
-  },
-  noIssuesTitle: {
-    fontSize: "20px",
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: "8px"
-  },
-  noIssuesText: {
-    fontSize: "14px",
-    color: "#9CA3AF",
-    margin: 0
-  },
-  // Exercise tab styles
-  exerciseCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151"
-  },
-  exerciseList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px"
-  },
-  exerciseItem: {
-    padding: "16px",
-    backgroundColor: "#111111",
-    borderRadius: "8px",
-    border: "1px solid #374151"
-  },
-  exerciseTitle: {
-    margin: "0 0 8px 0",
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#10B981"
-  },
-  exerciseDescription: {
-    margin: 0,
-    fontSize: "14px",
-    color: "#D1D5DB",
-    lineHeight: "1.5"
-  },
-  // Status info styles
-  statusInfoCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151"
-  },
-  statusInfo: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px"
-  },
-  statusItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "8px 0",
-    borderBottom: "1px solid #374151"
-  },
-  statusLabel: {
-    fontSize: "14px",
-    color: "#9CA3AF"
-  },
-  statusValue: {
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#FFFFFF"
-  },
-  // Settings tab styles
-  settingsCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151"
-  },
-  settingsContent: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "24px"
-  },
-  settingItem: {
-    padding: "20px",
-    backgroundColor: "#111111",
-    borderRadius: "8px",
-    border: "1px solid #374151"
-  },
-  settingTitle: {
-    margin: "0 0 8px 0",
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#FFFFFF"
-  },
-  settingDescription: {
-    margin: "0 0 16px 0",
-    fontSize: "14px",
-    color: "#9CA3AF",
-    lineHeight: "1.5"
-  },
-  settingControl: {
-    display: "flex",
-    alignItems: "center"
-  },
-  slider: {
-    width: "100%",
-    height: "6px",
-    borderRadius: "3px",
-    backgroundColor: "#374151",
-    outline: "none",
-    appearance: "none"
-  },
-  toggleSwitch: {
-    position: "relative",
-    display: "inline-block",
-    width: "50px",
-    height: "24px"
-  },
-  toggleInput: {
-    opacity: 0,
-    width: 0,
-    height: 0
-  },
-  toggleSlider: {
-    position: "absolute",
-    cursor: "pointer",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#374151",
-    borderRadius: "24px",
-    transition: "0.4s"
-  },
-  dangerButton: {
-    padding: "10px 20px",
-    backgroundColor: "#EF4444",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "500",
-    transition: "all 0.2s ease"
-  }
+// Theme-aware styles function
+const getStyles = (theme) => {
+  const isDark = theme === 'dark';
+  
+  return {
+    page: {
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100vh",
+      fontFamily: "ui-monospace, 'Fira Code', 'Cascadia Code', Consolas, monospace",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    statusBar: {
+      display: "flex",
+      alignItems: "center",
+      padding: "6px 24px",
+      backgroundColor: isDark ? "#0f0f0f" : "#f8f9fa",
+      borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      fontSize: "12px",
+      fontWeight: "400",
+      letterSpacing: "0.5px"
+    },
+    status: {
+      fontSize: "12px",
+      color: isDark ? "#71717a" : "#6b7280"
+    },
+    statusText: {
+      color: isDark ? "#00ff88" : "#10b981",
+      fontWeight: "500"
+    },
+    errorText: {
+      color: isDark ? "#ff4757" : "#dc2626"
+    },
+    mainContent: {
+      display: "flex",
+      flex: 1,
+      gap: "16px",
+      padding: "16px",
+      minHeight: "calc(100vh - 120px)"
+    },
+    leftPanel: {
+      flex: "1",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      padding: "8px"
+    },
+    rightPanel: {
+      flex: "1",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      overflow: "auto"
+    },
+    sectionTitle: {
+      fontSize: "14px",
+      fontWeight: "500",
+      color: isDark ? "#a1a1aa" : "#6b7280",
+      marginBottom: "12px",
+      textAlign: "center",
+      letterSpacing: "0.5px",
+      textTransform: "uppercase"
+    },
+    videoContainer: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      width: "100%"
+    },
+    stage: {
+      position: "relative",
+      borderRadius: "4px",
+      overflow: "hidden",
+      background: "#000000",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+    },
+    videoHidden: { 
+      display: "none" 
+    },
+    canvas: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 1,
+      pointerEvents: "none",
+      transformOrigin: "top left"
+    },
+    statusCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "16px"
+    },
+    cardHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "12px"
+    },
+    scoreCircle: {
+      width: "48px",
+      height: "48px",
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#ffffff",
+      fontSize: "14px",
+      fontWeight: "600",
+      border: "2px solid"
+    },
+    postureStatus: {
+      padding: "12px",
+      border: "1px solid",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff"
+    },
+    alert: {
+      color: isDark ? "#ff4757" : "#dc2626",
+      fontWeight: "500",
+      fontSize: "12px"
+    },
+    statsCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "16px"
+    },
+    cardTitle: {
+      margin: "0 0 12px 0",
+      fontSize: "14px",
+      fontWeight: "500",
+      color: isDark ? "#a1a1aa" : "#6b7280",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    statsGrid: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "8px"
+    },
+    statItem: {
+      display: "flex",
+      flexDirection: "column",
+      padding: "12px",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+    },
+    statLabel: {
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#6b7280",
+      fontWeight: "500",
+      marginBottom: "4px",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    statValue: {
+      fontSize: "16px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    measurementsCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "16px"
+    },
+    measurementsGrid: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "8px"
+    },
+    measurementItem: {
+      display: "flex",
+      flexDirection: "column",
+      padding: "8px",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+    },
+    measurementLabel: {
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#6b7280",
+      marginBottom: "2px",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    measurementValue: {
+      fontSize: "14px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    issuesCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "16px"
+    },
+    issueItem: {
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      padding: "12px",
+      margin: "8px 0",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      borderLeft: "3px solid"
+    },
+    issueHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "6px"
+    },
+    issueType: {
+      fontSize: "12px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    severityBadge: {
+      padding: "2px 6px",
+      color: "#ffffff",
+      fontSize: "10px",
+      fontWeight: "700"
+    },
+    issueMessage: {
+      fontSize: "12px",
+      color: isDark ? "#a1a1aa" : "#6b7280",
+      marginBottom: "2px"
+    },
+    issueMeasurements: {
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#9ca3af"
+    },
+    noIssuesCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "24px",
+      textAlign: "center"
+    },
+    noIssuesIcon: {
+      fontSize: "32px",
+      color: isDark ? "#00ff88" : "#10b981",
+      marginBottom: "8px"
+    },
+    noIssuesTitle: {
+      fontSize: "16px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937",
+      marginBottom: "4px"
+    },
+    noIssuesText: {
+      fontSize: "12px",
+      color: isDark ? "#71717a" : "#6b7280",
+      margin: 0
+    },
+    // Exercise tab styles
+    exerciseCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "16px"
+    },
+    exerciseList: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "8px"
+    },
+    exerciseItem: {
+      padding: "12px",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+    },
+    exerciseTitle: {
+      margin: "0 0 4px 0",
+      fontSize: "12px",
+      fontWeight: "600",
+      color: isDark ? "#00ff88" : "#10b981"
+    },
+    exerciseDescription: {
+      margin: 0,
+      fontSize: "12px",
+      color: isDark ? "#a1a1aa" : "#6b7280",
+      lineHeight: "1.4"
+    },
+    // Status info styles
+    statusInfoCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "16px"
+    },
+    statusInfo: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "8px"
+    },
+    statusItem: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "6px 0",
+      borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+    },
+    statusLabel: {
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#6b7280",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    statusValue: {
+      fontSize: "12px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    // Settings tab styles
+    settingsCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "16px"
+    },
+    settingsContent: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "16px"
+    },
+    settingItem: {
+      padding: "12px",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+    },
+    settingTitle: {
+      margin: "0 0 4px 0",
+      fontSize: "12px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    settingDescription: {
+      margin: "0 0 12px 0",
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#6b7280",
+      lineHeight: "1.4"
+    },
+    settingControl: {
+      display: "flex",
+      alignItems: "center"
+    },
+    slider: {
+      width: "100%",
+      height: "4px",
+      backgroundColor: isDark ? "#27272a" : "#e5e7eb",
+      outline: "none",
+      appearance: "none"
+    },
+    toggleSwitch: {
+      position: "relative",
+      display: "inline-block",
+      width: "40px",
+      height: "20px"
+    },
+    toggleInput: {
+      opacity: 0,
+      width: 0,
+      height: 0
+    },
+    toggleSlider: {
+      position: "absolute",
+      cursor: "pointer",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: isDark ? "#27272a" : "#e5e7eb",
+      transition: "0.3s"
+    },
+    themeToggleButton: {
+      padding: "8px 16px",
+      backgroundColor: isDark ? "#27272a" : "#e5e7eb",
+      color: isDark ? "#e4e4e7" : "#1f2937",
+      border: `1px solid ${isDark ? "#3f3f46" : "#d1d5db"}`,
+      cursor: "pointer",
+      fontSize: "12px",
+      fontWeight: "600",
+      transition: "all 0.2s ease"
+    },
+    dangerButton: {
+      padding: "8px 16px",
+      backgroundColor: isDark ? "#ff4757" : "#dc2626",
+      color: "#ffffff",
+      border: "none",
+      cursor: "pointer",
+      fontSize: "10px",
+      fontWeight: "600",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
+      transition: "all 0.2s ease"
+    }
+  };
 };
