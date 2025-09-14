@@ -541,7 +541,7 @@ const updateSessionStats = () => {
       <div style={styles.mainContent}>
         <div style={styles.leftPanel}>
           <div style={styles.videoContainer}>
-            <h3 style={styles.sectionTitle}>Camera Feed</h3>
+            {/* <h3 style={styles.sectionTitle}>Camera Feed</h3> */}
             <div style={{ ...styles.stage, width: stageSize.w * 0.7, height: stageSize.h * 0.7 }}>
               <video ref={videoRef} playsInline muted style={styles.videoHidden} />
               <canvas ref={canvasRef} style={{ ...styles.canvas, transform: "scale(0.7)" }} />
