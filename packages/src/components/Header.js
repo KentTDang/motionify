@@ -80,7 +80,7 @@ const getStyles = (theme) => {
       color: isDark ? "#e4e4e7" : "#1f2937",
       border: `1px solid ${isDark ? "#3f3f46" : "#d1d5db"}`,
       cursor: "pointer",
-      fontSize: "14px",
+      fontSize: "10px",
       fontWeight: "600",
       borderRadius: "4px",
       transition: "all 0.2s ease",
