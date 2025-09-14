@@ -119,7 +119,7 @@ export default function App() {
           const result = lm.detectForVideo(v, now);
 
           // --- analysis branch: exercise vs posture ---
-          if (now - lastPostureCheck >= CHECK_INTERVAL && result.landmarks?.[0]) {
+          // if (now - lastPostureCheck >= CHECK_INTERVAL && result.landmarks?.[0]) {
             if (activeTab === "exercise") {
               const det = checkArmStretch(result.landmarks[0]);
               updateExerciseTracking(det);
@@ -137,7 +137,7 @@ export default function App() {
               }
             }
             lastPostureCheck = now;
-          }
+          // }
 
           updateSessionStats();
           drawFrame(c, v, result);
@@ -757,15 +757,20 @@ function checkPosture(landmarks) {
     });
   }
 
-  const noseToShoulderDist = Math.abs(nose.x - shoulderMidpoint.x);
-  const idealNoseToShoulderDist = 0.05;
+ const noseToShoulderDist = Math.abs(nose.x - shoulderMidpoint.x);
+  const idealNoseToShoulderDist = 0.025;
 
-  if (noseToShoulderDist > idealNoseToShoulderDist) {
+  // Compute the Euclidean distance between the head and the shoulder midpoint.
+  const dx = nose.x - shoulderMidpoint.x;
+  const dy = nose.y - shoulderMidpoint.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance < 0.3) {
     issues.push({
       type: "Slouching",
       severity: (noseToShoulderDist - idealNoseToShoulderDist) * 15,
       message: "Chin back slightly",
-      measurements: `Head forward by: ${(noseToShoulderDist - idealNoseToShoulderDist).toFixed(3)}`,
+      measurements: "Head forward by: ${(noseToShoulderDist - idealNoseToShoulderDist).toFixed(3)}",
     });
   }
 
