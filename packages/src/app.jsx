@@ -118,14 +118,16 @@ export default function App() {
           const now = performance.now();
           const result = lm.detectForVideo(v, now);
 
+          const pose = result?.landmarks?.[0];
+          
           // --- analysis branch: exercise vs posture ---
           // if (now - lastPostureCheck >= CHECK_INTERVAL && result.landmarks?.[0]) {
             if (activeTab === "exercise") {
-              const det = checkArmStretch(result.landmarks[0]);
+              const det = checkArmStretch(pose);
               updateExerciseTracking(det);
               setLastCheckTime(now);
             } else {
-              const currentPosture = checkPosture(result.landmarks[0]);
+              const currentPosture = checkPosture(pose);
               if (currentPosture) {
                 updatePostureTracking(currentPosture);
                 samplesRef.current.push(currentPosture);
@@ -901,6 +903,11 @@ function jointAngle(a, b, c) {
 }
 
 function checkArmStretch(pts) {
+
+  if (!pts || !Array.isArray(pts) || pts.length < 17) {
+    return { stretching: false, kind: null, message: "No pose detected" };
+  }
+
   const Ls = pts[11],
     Rs = pts[12]; // shoulders
   const Le = pts[13],
