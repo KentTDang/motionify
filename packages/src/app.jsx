@@ -245,6 +245,21 @@ export default function App() {
     }
   };
 
+  const lastPostureRef = useRef("Good Posture");
+
+const [lastTrayState, setLastTrayState] = useState("Good Posture");
+
+useEffect(() => {
+  const newState =
+    sessionStats.currentBadPostureDuration > 0 ? "Bad Posture" : "Good Posture";
+
+  if (newState !== lastTrayState) {
+    window.electron?.sendPostureStatus(newState);
+    setLastTrayState(newState);
+  }
+}, [sessionStats.currentBadPostureDuration, lastTrayState]);
+
+
 // ⏰ Track last notifications
 const lastNotifySecondRef = useRef(0);
 const lastBadPostureNotifyRef = useRef(0);
