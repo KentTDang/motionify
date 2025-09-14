@@ -3,7 +3,7 @@ import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import Header from "./components/Header";
 import './index.css'; // Import the CSS file where the global styles are defined
 
-const CHECK_INTERVAL = 1000; // Check every 1 second
+const CHECK_INTERVAL = 1; // Check every 1 second
 const SAMPLES_NEEDED = 30;
 const BAD_POSTURE_THRESHOLD = 0.7;
 
@@ -119,7 +119,6 @@ export default function App() {
           const result = lm.detectForVideo(v, now);
 
           // --- analysis branch: exercise vs posture ---
-          if (now - lastPostureCheck >= CHECK_INTERVAL && result.landmarks?.[0]) {
             if (activeTab === "exercise") {
               const det = checkArmStretch(result.landmarks[0]);
               updateExerciseTracking(det);
@@ -137,7 +136,6 @@ export default function App() {
               }
             }
             lastPostureCheck = now;
-          }
 
           updateSessionStats();
           drawFrame(c, v, result);
@@ -743,7 +741,7 @@ function checkPosture(landmarks) {
   }
 
   const noseToShoulderDist = Math.abs(nose.x - shoulderMidpoint.x);
-  const idealNoseToShoulderDist = 0.05;
+  const idealNoseToShoulderDist = 0.02;
 
   if (noseToShoulderDist > idealNoseToShoulderDist) {
     issues.push({
