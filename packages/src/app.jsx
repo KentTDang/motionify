@@ -248,15 +248,17 @@ export default function App() {
 
   const lastPostureRef = useRef("Good Posture");
 
-useEffect(() => {
-  const isBad = sessionStats.currentBadPostureDuration > 0;
-  const newStatus = isBad ? "Bad Posture" : "Good Posture";
+const [lastTrayState, setLastTrayState] = useState("Good Posture");
 
-  if (newStatus !== lastPostureRef.current) {
-    window.electron?.sendPostureStatus(newStatus); // 🚀 send to main.js
-    lastPostureRef.current = newStatus;
+useEffect(() => {
+  const newState =
+    sessionStats.currentBadPostureDuration > 0 ? "Bad Posture" : "Good Posture";
+
+  if (newState !== lastTrayState) {
+    window.electron?.sendPostureStatus(newState);
+    setLastTrayState(newState);
   }
-}, [sessionStats.currentBadPostureDuration]);
+}, [sessionStats.currentBadPostureDuration, lastTrayState]);
 
 
 // ⏰ Track last notifications
