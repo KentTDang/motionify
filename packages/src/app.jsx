@@ -545,61 +545,6 @@ const updateSessionStats = () => {
           </>
         );
 
-      case "settings":
-        return (
-          <div style={styles.settingsCard}>
-            <h3 style={styles.cardTitle}>Settings</h3>
-            <div style={styles.settingsContent}>
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Theme</h4>
-                <p style={styles.settingDescription}>Switch between dark and light mode.</p>
-                <div style={styles.settingControl}>
-                  <button onClick={handleThemeToggle} style={styles.themeToggleButton}>
-                    {theme === 'dark' ? 'Switch to Light Mode ☀️' : 'Switch to Dark Mode 🌙'}
-                  </button>
-                </div>
-              </div>
-
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Detection Sensitivity</h4>
-                <p style={styles.settingDescription}>Adjust how sensitive the posture detection is.</p>
-                <div style={styles.settingControl}>
-                  <input type="range" min="0.3" max="0.9" step="0.1" defaultValue="0.7" style={styles.slider} />
-                </div>
-              </div>
-
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Check Interval</h4>
-                <p style={styles.settingDescription}>How often to check your posture (in seconds).</p>
-                <div style={styles.settingControl}>
-                  <input type="range" min="1" max="10" step="1" defaultValue="1" style={styles.slider} />
-                </div>
-              </div>
-
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Notifications</h4>
-                <p style={styles.settingDescription}>Enable desktop notifications for posture alerts.</p>
-                <div style={styles.settingControl}>
-                  <label style={styles.toggleSwitch}>
-                    <input type="checkbox" defaultChecked style={styles.toggleInput} />
-                    <span style={styles.toggleSlider}></span>
-                  </label>
-                </div>
-              </div>
-
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Reset Data</h4>
-                <p style={styles.settingDescription}>Clear all session data and start fresh.</p>
-                <div style={styles.settingControl}>
-                  <button onClick={resetStats} style={styles.dangerButton}>
-                    Reset All Data
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
       default:
         return null;
     }
@@ -1101,23 +1046,23 @@ const styles = {
   statusLabel: { fontSize: "14px", color: "#9CA3AF" },
   statusValue: { fontSize: "14px", fontWeight: "600", color: "#FFFFFF" },
 
-  settingsCard: {
-    backgroundColor: "#1F1F1F",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid #374151",
-  },
-  settingsContent: { display: "flex", flexDirection: "column", gap: "24px" },
-  settingItem: {
-    padding: "20px",
-    backgroundColor: "#111111",
-    borderRadius: "8px",
-    border: "1px solid #374151",
-  },
-  settingTitle: { margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#FFFFFF" },
-  settingDescription: { margin: "0 0 16px 0", fontSize: "14px", color: "#9CA3AF", lineHeight: "1.5" },
-  settingControl: { display: "flex", alignItems: "center" },
+  // settingsCard: {
+  //   backgroundColor: "#1F1F1F",
+  //   borderRadius: "16px",
+  //   padding: "24px",
+  //   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+  //   border: "1px solid #374151",
+  // },
+  // settingsContent: { display: "flex", flexDirection: "column", gap: "24px" },
+  // settingItem: {
+  //   padding: "20px",
+  //   backgroundColor: "#111111",
+  //   borderRadius: "8px",
+  //   border: "1px solid #374151",
+  // },
+  // settingTitle: { margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#FFFFFF" },
+  // settingDescription: { margin: "0 0 16px 0", fontSize: "14px", color: "#9CA3AF", lineHeight: "1.5" },
+  // settingControl: { display: "flex", alignItems: "center" },
   slider: {
     width: "100%",
     height: "6px",
