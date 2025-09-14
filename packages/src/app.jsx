@@ -118,23 +118,24 @@ export default function App() {
           const now = performance.now();
           const result = lm.detectForVideo(v, now);
 
+          const pose = result?.landmarks?.[0];
           // --- analysis branch: exercise vs posture ---
-            if (activeTab === "exercise") {
-              const det = checkArmStretch(result.landmarks[0]);
-              updateExerciseTracking(det);
+          if (activeTab === "exercise") {
+            const det = checkArmStretch(pose); // safe now; function will guard too
+            updateExerciseTracking(det);
+            setLastCheckTime(now);
+          } else {
+            const currentPosture = checkPosture(pose); // checkPosture already guards
+            if (currentPosture) {
+              updatePostureTracking(currentPosture);
+              samplesRef.current.push(currentPosture);
+              if (samplesRef.current.length > SAMPLES_NEEDED) samplesRef.current.shift();
+              const averagedStatus = averagePostureStatus(samplesRef.current);
+              setPostureStatus(averagedStatus);
               setLastCheckTime(now);
-            } else {
-              const currentPosture = checkPosture(result.landmarks[0]);
-              if (currentPosture) {
-                updatePostureTracking(currentPosture);
-                samplesRef.current.push(currentPosture);
-                if (samplesRef.current.length > SAMPLES_NEEDED) samplesRef.current.shift();
-                const averagedStatus = averagePostureStatus(samplesRef.current);
-                setPostureStatus(averagedStatus);
-                setLastCheckTime(now);
-                window.electron?.sendPostureStatus(averagedStatus.status);
-              }
+              window.electron?.sendPostureStatus(averagedStatus.status);
             }
+          }
             lastPostureCheck = now;
 
           updateSessionStats();
@@ -873,13 +874,15 @@ function jointAngle(a, b, c) {
 }
 
 function checkArmStretch(pts) {
-  const Ls = pts[11],
-    Rs = pts[12]; // shoulders
-  const Le = pts[13],
-    Re = pts[14]; // elbows
-  const Lw = pts[15],
-    Rw = pts[16]; // wrists
+  if (!pts || !Array.isArray(pts) || pts.length < 17) {
+    return { stretching: false, kind: null, message: "No pose detected" };
+  }
+
+  const Ls = pts[11], Rs = pts[12];
+  const Le = pts[13], Re = pts[14];
+  const Lw = pts[15], Rw = pts[16];
   const nose = pts[0];
+
   if (!Ls || !Rs || !Le || !Re || !Lw || !Rw || !nose) {
     return { stretching: false, kind: null, message: "Missing landmarks" };
   }
@@ -906,9 +909,9 @@ function checkArmStretch(pts) {
   if (elbowsStraight && wristsNearShoulderY && wristsWide) {
     return { stretching: true, kind: "tpose", message: "T-pose / lateral arm stretch" };
   }
-
   return { stretching: false, kind: null, message: "" };
 }
+
 
 
 
