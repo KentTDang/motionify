@@ -2,8 +2,8 @@ import React from 'react';
 
 const Header = ({ activeTab, onTabChange, onResetStats, theme, onThemeToggle }) => {
   const tabs = [
-    { id: 'exercise', label: 'EXERCISE' },
     { id: 'data', label: 'DATA' },
+    { id: 'exercise', label: 'EXERCISE' },
     { id: 'settings', label: 'SETTINGS' }
   ];
 

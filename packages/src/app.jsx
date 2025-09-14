@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import Header from "./components/Header";
+import './index.css'; // Import the CSS file where the global styles are defined
 
 const CHECK_INTERVAL = 1000; // Check every 1 second
 const SAMPLES_NEEDED = 30;
@@ -37,7 +38,7 @@ export default function App() {
   });
 
   // New state for tab management and theme
-  const [activeTab, setActiveTab] = useState('exercise');
+  const [activeTab, setActiveTab] = useState('data'); // Changed from 'exercise' to 'data'
   const [theme, setTheme] = useState('dark');
 
   // ...existing useEffect and helper functions remain the same...
@@ -813,17 +814,20 @@ const getStyles = (theme) => {
       minHeight: "100vh",
       fontFamily: "ui-monospace, 'Fira Code', 'Cascadia Code', Consolas, monospace",
       backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
-      color: isDark ? "#e4e4e7" : "#1f2937"
+      color: isDark ? "#e4e4e7" : "#1f2937",
+      margin: 0,
+      padding: 0
     },
     statusBar: {
       display: "flex",
       alignItems: "center",
-      padding: "6px 24px",
+      padding: "6px 12px",
       backgroundColor: isDark ? "#0f0f0f" : "#f8f9fa",
       borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
       fontSize: "12px",
       fontWeight: "400",
-      letterSpacing: "0.5px"
+      letterSpacing: "0.5px",
+      margin: 0
     },
     status: {
       fontSize: "12px",
@@ -839,29 +843,33 @@ const getStyles = (theme) => {
     mainContent: {
       display: "flex",
       flex: 1,
-      gap: "16px",
-      padding: "16px",
-      minHeight: "calc(100vh - 120px)"
+      gap: "8px",
+      padding: "8px",
+      minHeight: "calc(100vh - 120px)",
+      margin: 0
     },
     leftPanel: {
       flex: "1",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      padding: "8px"
+      padding: "4px",
+      margin: 0
     },
     rightPanel: {
       flex: "1",
       display: "flex",
       flexDirection: "column",
-      gap: "12px",
-      overflow: "auto"
+      gap: "8px",
+      overflow: "auto",
+      padding: "4px",
+      margin: 0
     },
     sectionTitle: {
       fontSize: "14px",
       fontWeight: "500",
       color: isDark ? "#a1a1aa" : "#6b7280",
-      marginBottom: "12px",
+      marginBottom: "8px",
       textAlign: "center",
       letterSpacing: "0.5px",
       textTransform: "uppercase"
@@ -870,14 +878,17 @@ const getStyles = (theme) => {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      width: "100%"
+      width: "100%",
+      margin: 0,
+      padding: 0
     },
     stage: {
       position: "relative",
       borderRadius: "4px",
       overflow: "hidden",
       background: "#000000",
-      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
     },
     videoHidden: { 
       display: "none" 
@@ -892,13 +903,14 @@ const getStyles = (theme) => {
     statusCard: {
       backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
-      padding: "16px"
+      padding: "12px",
+      margin: "0 0 8px 0"
     },
     cardHeader: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: "12px"
+      marginBottom: "8px"
     },
     scoreCircle: {
       width: "48px",
@@ -913,9 +925,10 @@ const getStyles = (theme) => {
       border: "2px solid"
     },
     postureStatus: {
-      padding: "12px",
+      padding: "8px",
       border: "1px solid",
-      backgroundColor: isDark ? "#0a0a0a" : "#ffffff"
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      margin: 0
     },
     alert: {
       color: isDark ? "#ff4757" : "#dc2626",
@@ -925,10 +938,11 @@ const getStyles = (theme) => {
     statsCard: {
       backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
-      padding: "16px"
+      padding: "12px",
+      margin: "0 0 8px 0"
     },
     cardTitle: {
-      margin: "0 0 12px 0",
+      margin: "0 0 8px 0",
       fontSize: "14px",
       fontWeight: "500",
       color: isDark ? "#a1a1aa" : "#6b7280",
@@ -938,20 +952,21 @@ const getStyles = (theme) => {
     statsGrid: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: "8px"
+      gap: "6px"
     },
     statItem: {
       display: "flex",
       flexDirection: "column",
-      padding: "12px",
+      padding: "8px",
       backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
-      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
     },
     statLabel: {
       fontSize: "10px",
       color: isDark ? "#71717a" : "#6b7280",
       fontWeight: "500",
-      marginBottom: "4px",
+      marginBottom: "2px",
       textTransform: "uppercase",
       letterSpacing: "0.5px"
     },
@@ -963,19 +978,21 @@ const getStyles = (theme) => {
     measurementsCard: {
       backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
-      padding: "16px"
+      padding: "12px",
+      margin: "0 0 8px 0"
     },
     measurementsGrid: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: "8px"
+      gap: "6px"
     },
     measurementItem: {
       display: "flex",
       flexDirection: "column",
-      padding: "8px",
+      padding: "6px",
       backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
-      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
     },
     measurementLabel: {
       fontSize: "10px",
@@ -992,12 +1009,13 @@ const getStyles = (theme) => {
     issuesCard: {
       backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
-      padding: "16px"
+      padding: "12px",
+      margin: "0 0 8px 0"
     },
     issueItem: {
       backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
-      padding: "12px",
-      margin: "8px 0",
+      padding: "8px",
+      margin: "4px 0",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
       borderLeft: "3px solid"
     },
@@ -1005,7 +1023,7 @@ const getStyles = (theme) => {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: "6px"
+      marginBottom: "4px"
     },
     issueType: {
       fontSize: "12px",
@@ -1030,13 +1048,14 @@ const getStyles = (theme) => {
     noIssuesCard: {
       backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
-      padding: "24px",
-      textAlign: "center"
+      padding: "16px",
+      textAlign: "center",
+      margin: "0 0 8px 0"
     },
     noIssuesIcon: {
       fontSize: "32px",
       color: isDark ? "#00ff88" : "#10b981",
-      marginBottom: "8px"
+      marginBottom: "6px"
     },
     noIssuesTitle: {
       fontSize: "16px",
@@ -1053,17 +1072,19 @@ const getStyles = (theme) => {
     exerciseCard: {
       backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
-      padding: "16px"
+      padding: "12px",
+      margin: "0 0 8px 0"
     },
     exerciseList: {
       display: "flex",
       flexDirection: "column",
-      gap: "8px"
+      gap: "6px"
     },
     exerciseItem: {
-      padding: "12px",
+      padding: "8px",
       backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
-      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
     },
     exerciseTitle: {
       margin: "0 0 4px 0",
@@ -1081,18 +1102,19 @@ const getStyles = (theme) => {
     statusInfoCard: {
       backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
-      padding: "16px"
+      padding: "12px",
+      margin: "0 0 8px 0"
     },
     statusInfo: {
       display: "flex",
       flexDirection: "column",
-      gap: "8px"
+      gap: "6px"
     },
     statusItem: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "6px 0",
+      padding: "4px 0",
       borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
     },
     statusLabel: {
@@ -1110,17 +1132,19 @@ const getStyles = (theme) => {
     settingsCard: {
       backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
       border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
-      padding: "16px"
+      padding: "12px",
+      margin: "0 0 8px 0"
     },
     settingsContent: {
       display: "flex",
       flexDirection: "column",
-      gap: "16px"
+      gap: "12px"
     },
     settingItem: {
-      padding: "12px",
+      padding: "8px",
       backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
-      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
     },
     settingTitle: {
       margin: "0 0 4px 0",
@@ -1129,7 +1153,7 @@ const getStyles = (theme) => {
       color: isDark ? "#e4e4e7" : "#1f2937"
     },
     settingDescription: {
-      margin: "0 0 12px 0",
+      margin: "0 0 8px 0",
       fontSize: "10px",
       color: isDark ? "#71717a" : "#6b7280",
       lineHeight: "1.4"
@@ -1190,3 +1214,4 @@ const getStyles = (theme) => {
     }
   };
 };
+
