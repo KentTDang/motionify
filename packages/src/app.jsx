@@ -246,24 +246,44 @@ export default function App() {
     }
   };
 
-  const updateSessionStats = () => {
-    const now = Date.now();
-    const sessionDuration = now - sessionStartRef.current;
-    const currentBadDuration = badPostureStartRef.current ? now - badPostureStartRef.current : 0;
+// ⏰ Track last notifications
+const lastNotifySecondRef = useRef(0);
+const lastBadPostureNotifyRef = useRef(0);
 
-    setSessionStats((prev) => {
-      const badTime = prev.badPostureTime + (badPostureStartRef.current ? 1000 : 0);
-      const goodTime = Math.max(0, sessionDuration - badTime);
+const NOTIFY_INTERVAL = 20;  // periodic reminders
+const BAD_POSTURE_NOTIFY_INTERVAL = 30; // seconds
 
-      return {
-        ...prev,
-        totalTime: sessionDuration,
-        goodPostureTime: Math.max(0, goodTime),
-        currentBadPostureDuration: currentBadDuration,
-        averagePostureScore: Math.round(((goodTime / Math.max(1, sessionDuration)) * 100) || 100),
-      };
-    });
-  };
+const updateSessionStats = () => {
+  const now = Date.now();
+  const sessionDuration = now - sessionStartRef.current;
+  const currentSecond = Math.floor(sessionDuration / 1000);
+
+  // 🔔 Stretch reminder every NOTIFY_INTERVAL seconds
+  if (currentSecond - lastNotifySecondRef.current >= NOTIFY_INTERVAL) {
+    window.electron?.sendPostureStatus("Stretch Reminder");
+    lastNotifySecondRef.current = currentSecond;
+  }
+
+  // ✅ Update session stats
+  setSessionStats(prev => {
+    // If bad posture is currently active, count elapsed time since last tick
+    const badIncrement = badPostureStartRef.current ? CHECK_INTERVAL : 0;
+
+    const newBadTime = prev.badPostureTime + badIncrement;
+    const newGoodTime = sessionDuration - newBadTime;
+
+    return {
+      ...prev,
+      totalTime: sessionDuration,
+      goodPostureTime: newGoodTime,
+      badPostureTime: newBadTime,
+      currentBadPostureDuration: badPostureStartRef.current 
+        ? now - badPostureStartRef.current 
+        : 0,
+      averagePostureScore: Math.round(((newGoodTime / sessionDuration) * 100) || 100)
+    };
+  });
+};
 
   const formatTime = (ms) => {
     const seconds = Math.floor(ms / 1000);
@@ -278,6 +298,30 @@ export default function App() {
       return `${seconds}s`;
     }
   };
+
+  const [sessionTime, setSessionTime] = useState(.5 * 60); // 30 in seconds
+  const [isSessionRunning, setIsSessionRunning] = useState(false);
+
+  useEffect(() => {
+  if (!isSessionRunning) return;
+
+  const interval = setInterval(() => {
+    setSessionTime(prev => {
+      if (prev <= 1) {
+        clearInterval(interval);
+        setIsSessionRunning(false);
+
+        // 🔔 Tell main process to show notification
+        window.electron?.sendPostureStatus("Session Ended");
+
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [isSessionRunning]);
 
   const getPostureColor = (score) => {
     if (theme === 'dark') {
