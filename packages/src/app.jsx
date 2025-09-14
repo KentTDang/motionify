@@ -399,38 +399,6 @@ const updateSessionStats = () => {
               )}
             </div>
 
-
-            {/* Current Issues or No Issues */}
-            {postureStatus.details.length > 0 ? (
-              <div style={styles.issuesCard}>
-                <h3 style={styles.cardTitle}>Current Issues</h3>
-                {postureStatus.details.map((issue, i) => (
-                  <div key={i} style={{
-                    ...styles.issueItem,
-                    borderLeft: `3px solid ${issue.severity > 5 ? getPostureColor(0) : getPostureColor(60)}`
-                  }}>
-                    <div style={styles.issueHeader}>
-                      <span style={styles.issueType}>{issue.type}</span>
-                      <span style={{
-                        ...styles.severityBadge,
-                        backgroundColor: issue.severity > 5 ? getPostureColor(0) : getPostureColor(60)
-                      }}>
-                        {Math.round(issue.severity)}/10
-                      </span>
-                    </div>
-                    <div style={styles.issueMessage}>{issue.message}</div>
-                    <div style={styles.issueMeasurements}>{issue.measurements}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={styles.noIssuesCard}>
-                <div style={styles.noIssuesIcon}>✓</div>
-                <h3 style={styles.noIssuesTitle}>Excellent Posture!</h3>
-                <p style={styles.noIssuesText}>Keep up the good work. Your posture is looking great.</p>
-              </div>
-            )}
-
             {/* Exercise Tips */}
             <div style={styles.exerciseCard}>
               <h3 style={styles.cardTitle}>Stretch Tips</h3>
