@@ -759,7 +759,12 @@ function checkPosture(landmarks) {
   const noseToShoulderDist = Math.abs(nose.x - shoulderMidpoint.x);
   const idealNoseToShoulderDist = 0.025;
 
-  if (noseToShoulderDist > idealNoseToShoulderDist) {
+  // Compute the Euclidean distance between the head and the shoulder midpoint.
+  const dx = nose.x - shoulderMidpoint.x;
+  const dy = nose.y - shoulderMidpoint.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance < 0.3) {
     issues.push({
       type: "Slouching",
       severity: (noseToShoulderDist - idealNoseToShoulderDist) * 15,
