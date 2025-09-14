@@ -1084,7 +1084,6 @@ const getStyles = (theme) => {
       alignItems: "center",
       padding: "6px 12px",
       backgroundColor: isDark ? "#0f0f0f" : "#f8f9fa",
-      borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
       fontSize: "12px",
       fontWeight: "400",
       letterSpacing: "0.5px",
