@@ -253,6 +253,7 @@ const lastBadPostureNotifyRef = useRef(0);
 const NOTIFY_INTERVAL = 20;  // periodic reminders
 const BAD_POSTURE_NOTIFY_INTERVAL = 30; // seconds
 
+// inside updateSessionStats
 const updateSessionStats = () => {
   const now = Date.now();
   const sessionDuration = now - sessionStartRef.current;
@@ -262,6 +263,15 @@ const updateSessionStats = () => {
   if (currentSecond - lastNotifySecondRef.current >= NOTIFY_INTERVAL) {
     window.electron?.sendPostureStatus("Stretch Reminder");
     lastNotifySecondRef.current = currentSecond;
+  }
+
+  // 🔔 Bad posture alert if slouching too long
+  if (badPostureStartRef.current) {
+    const badDurationSec = Math.floor((now - badPostureStartRef.current) / 1000);
+    if (badDurationSec - lastBadPostureNotifyRef.current >= BAD_POSTURE_NOTIFY_INTERVAL) {
+      window.electron?.sendPostureStatus("Bad Posture Alert");
+      lastBadPostureNotifyRef.current = badDurationSec;
+    }
   }
 
   // ✅ Update session stats
@@ -277,13 +287,14 @@ const updateSessionStats = () => {
       totalTime: sessionDuration,
       goodPostureTime: newGoodTime,
       badPostureTime: newBadTime,
-      currentBadPostureDuration: badPostureStartRef.current 
-        ? now - badPostureStartRef.current 
+      currentBadPostureDuration: badPostureStartRef.current
+        ? now - badPostureStartRef.current
         : 0,
       averagePostureScore: Math.round(((newGoodTime / sessionDuration) * 100) || 100)
     };
   });
 };
+
 
   const formatTime = (ms) => {
     const seconds = Math.floor(ms / 1000);
@@ -363,41 +374,42 @@ const updateSessionStats = () => {
   const renderRightPanelContent = () => {
     switch (activeTab) {
       case "exercise":
-        return (
-          <>
-            <div style={styles.statusCard}>
-              <h3 style={styles.cardTitle}>Arm Stretch Tracker</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Status</span>
-                  <span
-                    style={{
-                      ...styles.statValue,
-                      color: exerciseStatus.stretching ? "#10B981" : "#9CA3AF",
-                    }}
-                  >
-                    {exerciseStatus.stretching ? "Stretching" : "Idle"}
-                  </span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Kind</span>
-                  <span style={styles.statValue}>
+  return (
+    <>
+      <div style={styles.statusCard}>
+        <h3 style={styles.cardTitle}>Arm Stretch Tracker</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Status</span>
+            <span
+              style={{
+                ...styles.statValue,
+                color: exerciseStatus.stretching ? "#10B981" : "#9CA3AF",
+              }}
+            >
+              {exerciseStatus.stretching ? "Stretching" : "Idle"}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Kind</span>
+            <span style={styles.statValue}>
                     {exerciseStatus.kind ? (exerciseStatus.kind === "overhead" ? "Overhead" : "T-pose") : "—"}
-                  </span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Current Hold</span>
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Current Hold</span>
                   <span style={styles.statValue}>{Math.round(exerciseStatus.holdMs / 1000)}s</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Completed Reps</span>
-                  <span style={styles.statValue}>{exerciseStatus.reps}</span>
-                </div>
-              </div>
-              {exerciseStatus.message && (
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Completed Reps</span>
+            <span style={styles.statValue}>{exerciseStatus.reps}</span>
+          </div>
+        </div>
+        {exerciseStatus.message && (
                 <div style={{ marginTop: 12, color: "#D1D5DB", fontSize: 14 }}>💡 {exerciseStatus.message}</div>
               )}
             </div>
+
 
             {/* Exercise Tips */}
             <div style={styles.exerciseCard}>
@@ -421,97 +433,126 @@ const updateSessionStats = () => {
         );
 
       case "data":
-        return (
-          <>
-            <div style={styles.statsCard}>
-              <h3 style={styles.cardTitle}>Session Statistics</h3>
-              <div style={styles.statsGrid}>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Session Time</span>
-                  <span style={styles.statValue}>{formatTime(sessionStats.totalTime)}</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Good Posture</span>
-                  <span style={{...styles.statValue, color: getPostureColor(100)}}>
-                    {formatTime(sessionStats.goodPostureTime)}
-                  </span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Bad Posture</span>
+  return (
+    <>
+      {/* ✅ Live Posture Card (driven by timer) */}
+      <div
+        style={{
+          ...styles.statusCard,
+          border: `2px solid ${
+            sessionStats.currentBadPostureDuration > 0 ? "#EF4444" : "#22C55E"
+          }`,
+          backgroundColor:
+            sessionStats.currentBadPostureDuration > 0 ? "#FEE2E2" : "#DCFCE7",
+          marginBottom: 16,
+        }}
+      >
+        <h3
+          style={{
+            ...styles.cardTitle,
+            color: sessionStats.currentBadPostureDuration > 0 ? "#B91C1C" : "#166534",
+          }}
+        >
+          {sessionStats.currentBadPostureDuration > 0
+            ? "⚠️ Poor Posture"
+            : "✅ Good Posture"}
+        </h3>
+        <p
+          style={{
+            color: sessionStats.currentBadPostureDuration > 0 ? "#B91C1C" : "#166534",
+            fontWeight: "600",
+          }}
+        >
+          {sessionStats.currentBadPostureDuration > 0
+            ? `Your posture needs correction. You’ve been slouching for ${Math.round(
+                sessionStats.currentBadPostureDuration / 1000
+              )}s`
+            : "Keep it up! You're sitting well."}
+        </p>
+      </div>
 
-                  <span style={{...styles.statValue, color: getPostureColor(0)}}>
-                    {formatTime(sessionStats.badPostureTime)}
-                  </span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Posture Breaks</span>
-                  <span style={styles.statValue}>{sessionStats.postureBreaks}</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Longest Bad Streak</span>
-                  <span style={styles.statValue}>{formatTime(sessionStats.longestBadPostureStreak)}</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Average Score</span>
-                  <span style={styles.statValue}>{sessionStats.averagePostureScore}%</span>
-                </div>
-              </div>
+      {/* 📊 Session Statistics */}
+      <div style={styles.statsCard}>
+        <h3 style={styles.cardTitle}>Session Statistics</h3>
+        <div style={styles.statsGrid}>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Session Time</span>
+            <span style={styles.statValue}>{formatTime(sessionStats.totalTime)}</span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Good Posture</span>
+            <span style={{ ...styles.statValue, color: getPostureColor(100) }}>
+              {formatTime(sessionStats.goodPostureTime)}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Bad Posture</span>
+            <span style={{ ...styles.statValue, color: getPostureColor(0) }}>
+              {formatTime(sessionStats.badPostureTime)}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Posture Breaks</span>
+            <span style={styles.statValue}>{sessionStats.postureBreaks}</span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Longest Bad Streak</span>
+            <span style={styles.statValue}>
+              {formatTime(sessionStats.longestBadPostureStreak)}
+            </span>
+          </div>
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Average Score</span>
+            <span
+              style={{
+                ...styles.statValue,
+                color: getPostureColor(sessionStats.averagePostureScore),
+              }}
+            >
+              {sessionStats.averagePostureScore}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 📏 Detailed Measurements */}
+      {postureStatus.measurements && (
+        <div style={styles.measurementsCard}>
+          <h3 style={styles.cardTitle}>Detailed Measurements</h3>
+          <div style={styles.measurementsGrid}>
+            <div style={styles.measurementItem}>
+              <span style={styles.measurementLabel}>Spine Angle:</span>
+              <span style={styles.measurementValue}>
+                {postureStatus.measurements.spineAngle}°
+              </span>
             </div>
-
-            {postureStatus.measurements && (
-              <div style={styles.measurementsCard}>
-                <h3 style={styles.cardTitle}>Detailed Measurements</h3>
-                <div style={styles.measurementsGrid}>
-                  <div style={styles.measurementItem}>
-                    <span style={styles.measurementLabel}>Spine Angle:</span>
-                    <span style={styles.measurementValue}>{postureStatus.measurements.spineAngle}°</span>
-                  </div>
-                  <div style={styles.measurementItem}>
-                    <span style={styles.measurementLabel}>Forward Lean:</span>
-                    <span style={styles.measurementValue}>{postureStatus.measurements.forwardLean}</span>
-                  </div>
-                  <div style={styles.measurementItem}>
-                    <span style={styles.measurementLabel}>Shoulder Roll:</span>
-                    <span style={styles.measurementValue}>{postureStatus.measurements.shoulderRoll}</span>
-                  </div>
-                  <div style={styles.measurementItem}>
-                    <span style={styles.measurementLabel}>Neck Angle:</span>
-                    <span style={styles.measurementValue}>{postureStatus.measurements.neckAngle}°</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div style={styles.statusInfoCard}>
-              <h3 style={styles.cardTitle}>System Status</h3>
-              <div style={styles.statusInfo}>
-                <div style={styles.statusItem}>
-                  <span style={styles.statusLabel}>Camera Status:</span>
-
-                  <span style={{
-                    ...styles.statusValue,
-                    color: status === 'running' ? getPostureColor(100) : getPostureColor(0)
-                  }}>
-                    {status}
-                  </span>
-                </div>
-                <div style={styles.statusItem}>
-                  <span style={styles.statusLabel}>Last Check:</span>
-                  <span style={styles.statusValue}>
-                    {lastCheckTime ? `${Math.round((Date.now() - lastCheckTime) / 1000)}s ago` : "Never"}
-                  </span>
-                </div>
-                {err && (
-                  <div style={styles.statusItem}>
-                    <span style={styles.statusLabel}>Error:</span>
-
-                    <span style={{...styles.statusValue, color: getPostureColor(0)}}>{err}</span>
-                  </div>
-                )}
-              </div>
+            <div style={styles.measurementItem}>
+              <span style={styles.measurementLabel}>Forward Lean:</span>
+              <span style={styles.measurementValue}>
+                {postureStatus.measurements.forwardLean}
+              </span>
             </div>
-          </>
-        );
+            <div style={styles.measurementItem}>
+              <span style={styles.measurementLabel}>Shoulder Roll:</span>
+              <span style={styles.measurementValue}>
+                {postureStatus.measurements.shoulderRoll}
+              </span>
+            </div>
+            <div style={styles.measurementItem}>
+              <span style={styles.measurementLabel}>Neck Angle:</span>
+              <span style={styles.measurementValue}>
+                {postureStatus.measurements.neckAngle}°
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+
+
+
 
       default:
         return null;
