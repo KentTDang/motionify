@@ -135,7 +135,6 @@ export default function App() {
               setLastCheckTime(now);
               window.electron?.sendPostureStatus(averagedStatus.status);
             }
-            lastPostureCheck = now;
           }
             lastPostureCheck = now;
 
@@ -245,6 +244,7 @@ export default function App() {
       }
     }
   };
+
   const lastPostureRef = useRef("Good Posture");
 
 const [lastTrayState, setLastTrayState] = useState("Good Posture");
@@ -597,312 +597,6 @@ const updateSessionStats = () => {
         <div style={styles.leftPanel}>
           <div style={styles.videoContainer}>
             {/* <h3 style={styles.sectionTitle}>Camera Feed</h3> */}
-  const getPostureColor = (score) => {
-    if (theme === 'dark') {
-      if (score >= 80) return '#10B981';
-      if (score >= 60) return '#F59E0B';
-      return '#EF4444';
-    } else {
-      if (score >= 80) return '#059669';
-      if (score >= 60) return '#d97706';
-      return '#dc2626';
-    }
-  };
-
-  const resetStats = () => {
-    sessionStartRef.current = Date.now();
-    badPostureStartRef.current = null;
-    setExerciseStatus({ stretching: false, holdMs: 0, reps: 0, kind: null, message: "" });
-    setSessionStats({
-      totalTime: 0,
-      goodPostureTime: 0,
-      badPostureTime: 0,
-      currentBadPostureDuration: 0,
-      longestBadPostureStreak: 0,
-      postureBreaks: 0,
-      averagePostureScore: 100,
-    });
-  };
-
-  const handleTabChange = (tabId) => setActiveTab(tabId);
-
-
-  const handleThemeToggle = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
-
-  const styles = getStyles(theme);
-
-  // Render different right panel content based on active tab
-  const renderRightPanelContent = () => {
-    switch (activeTab) {
-      case "exercise":
-        return (
-          <>
-            <div style={styles.statusCard}>
-              <h3 style={styles.cardTitle}>Arm Stretch Tracker</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Status</span>
-                  <span
-                    style={{
-                      ...styles.statValue,
-                      color: exerciseStatus.stretching ? "#10B981" : "#9CA3AF",
-                    }}
-                  >
-                    {exerciseStatus.stretching ? "Stretching" : "Idle"}
-                  </span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Kind</span>
-                  <span style={styles.statValue}>
-                    {exerciseStatus.kind ? (exerciseStatus.kind === "overhead" ? "Overhead" : "T-pose") : "—"}
-                  </span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Current Hold</span>
-                  <span style={styles.statValue}>{Math.round(exerciseStatus.holdMs / 1000)}s</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Completed Reps</span>
-                  <span style={styles.statValue}>{exerciseStatus.reps}</span>
-                </div>
-              </div>
-              {exerciseStatus.message && (
-                <div style={{ marginTop: 12, color: "#D1D5DB", fontSize: 14 }}>💡 {exerciseStatus.message}</div>
-              )}
-            </div>
-
-
-            {/* Current Issues or No Issues */}
-            {postureStatus.details.length > 0 ? (
-              <div style={styles.issuesCard}>
-                <h3 style={styles.cardTitle}>Current Issues</h3>
-                {postureStatus.details.map((issue, i) => (
-                  <div key={i} style={{
-                    ...styles.issueItem,
-                    borderLeft: `3px solid ${issue.severity > 5 ? getPostureColor(0) : getPostureColor(60)}`
-                  }}>
-                    <div style={styles.issueHeader}>
-                      <span style={styles.issueType}>{issue.type}</span>
-                      <span style={{
-                        ...styles.severityBadge,
-                        backgroundColor: issue.severity > 5 ? getPostureColor(0) : getPostureColor(60)
-                      }}>
-                        {Math.round(issue.severity)}/10
-                      </span>
-                    </div>
-                    <div style={styles.issueMessage}>{issue.message}</div>
-                    <div style={styles.issueMeasurements}>{issue.measurements}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={styles.noIssuesCard}>
-                <div style={styles.noIssuesIcon}>✓</div>
-                <h3 style={styles.noIssuesTitle}>Excellent Posture!</h3>
-                <p style={styles.noIssuesText}>Keep up the good work. Your posture is looking great.</p>
-              </div>
-            )}
-
-            {/* Exercise Tips */}
-            <div style={styles.exerciseCard}>
-              <h3 style={styles.cardTitle}>Stretch Tips</h3>
-              <div style={styles.exerciseList}>
-                <div style={styles.exerciseItem}>
-                  <h4 style={styles.exerciseTitle}>Overhead Stretch</h4>
-                  <p style={styles.exerciseDescription}>
-                    Straighten elbows and raise wrists above head level. Hold 10–30s, breathe evenly.
-                  </p>
-                </div>
-                <div style={styles.exerciseItem}>
-                  <h4 style={styles.exerciseTitle}>T-Pose Stretch</h4>
-                  <p style={styles.exerciseDescription}>
-                    Keep elbows straight, wrists near shoulder height, and reach wide to the sides.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </>
-        );
-
-      case "data":
-        return (
-          <>
-            <div style={styles.statsCard}>
-              <h3 style={styles.cardTitle}>Session Statistics</h3>
-              <div style={styles.statsGrid}>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Session Time</span>
-                  <span style={styles.statValue}>{formatTime(sessionStats.totalTime)}</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Good Posture</span>
-                  <span style={{...styles.statValue, color: getPostureColor(100)}}>
-                    {formatTime(sessionStats.goodPostureTime)}
-                  </span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Bad Posture</span>
-
-                  <span style={{...styles.statValue, color: getPostureColor(0)}}>
-                    {formatTime(sessionStats.badPostureTime)}
-                  </span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Posture Breaks</span>
-                  <span style={styles.statValue}>{sessionStats.postureBreaks}</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Longest Bad Streak</span>
-                  <span style={styles.statValue}>{formatTime(sessionStats.longestBadPostureStreak)}</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Average Score</span>
-                  <span style={styles.statValue}>{sessionStats.averagePostureScore}%</span>
-                </div>
-              </div>
-            </div>
-
-            {postureStatus.measurements && (
-              <div style={styles.measurementsCard}>
-                <h3 style={styles.cardTitle}>Detailed Measurements</h3>
-                <div style={styles.measurementsGrid}>
-                  <div style={styles.measurementItem}>
-                    <span style={styles.measurementLabel}>Spine Angle:</span>
-                    <span style={styles.measurementValue}>{postureStatus.measurements.spineAngle}°</span>
-                  </div>
-                  <div style={styles.measurementItem}>
-                    <span style={styles.measurementLabel}>Forward Lean:</span>
-                    <span style={styles.measurementValue}>{postureStatus.measurements.forwardLean}</span>
-                  </div>
-                  <div style={styles.measurementItem}>
-                    <span style={styles.measurementLabel}>Shoulder Roll:</span>
-                    <span style={styles.measurementValue}>{postureStatus.measurements.shoulderRoll}</span>
-                  </div>
-                  <div style={styles.measurementItem}>
-                    <span style={styles.measurementLabel}>Neck Angle:</span>
-                    <span style={styles.measurementValue}>{postureStatus.measurements.neckAngle}°</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div style={styles.statusInfoCard}>
-              <h3 style={styles.cardTitle}>System Status</h3>
-              <div style={styles.statusInfo}>
-                <div style={styles.statusItem}>
-                  <span style={styles.statusLabel}>Camera Status:</span>
-
-                  <span style={{
-                    ...styles.statusValue,
-                    color: status === 'running' ? getPostureColor(100) : getPostureColor(0)
-                  }}>
-                    {status}
-                  </span>
-                </div>
-                <div style={styles.statusItem}>
-                  <span style={styles.statusLabel}>Last Check:</span>
-                  <span style={styles.statusValue}>
-                    {lastCheckTime ? `${Math.round((Date.now() - lastCheckTime) / 1000)}s ago` : "Never"}
-                  </span>
-                </div>
-                {err && (
-                  <div style={styles.statusItem}>
-                    <span style={styles.statusLabel}>Error:</span>
-
-                    <span style={{...styles.statusValue, color: getPostureColor(0)}}>{err}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        );
-
-      case "settings":
-        return (
-          <div style={styles.settingsCard}>
-            <h3 style={styles.cardTitle}>Settings</h3>
-            <div style={styles.settingsContent}>
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Theme</h4>
-                <p style={styles.settingDescription}>Switch between dark and light mode.</p>
-                <div style={styles.settingControl}>
-                  <button onClick={handleThemeToggle} style={styles.themeToggleButton}>
-                    {theme === 'dark' ? 'Switch to Light Mode ☀️' : 'Switch to Dark Mode 🌙'}
-                  </button>
-                </div>
-              </div>
-
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Detection Sensitivity</h4>
-                <p style={styles.settingDescription}>Adjust how sensitive the posture detection is.</p>
-                <div style={styles.settingControl}>
-                  <input type="range" min="0.3" max="0.9" step="0.1" defaultValue="0.7" style={styles.slider} />
-                </div>
-              </div>
-
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Check Interval</h4>
-                <p style={styles.settingDescription}>How often to check your posture (in seconds).</p>
-                <div style={styles.settingControl}>
-                  <input type="range" min="1" max="10" step="1" defaultValue="1" style={styles.slider} />
-                </div>
-              </div>
-
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Notifications</h4>
-                <p style={styles.settingDescription}>Enable desktop notifications for posture alerts.</p>
-                <div style={styles.settingControl}>
-                  <label style={styles.toggleSwitch}>
-                    <input type="checkbox" defaultChecked style={styles.toggleInput} />
-                    <span style={styles.toggleSlider}></span>
-                  </label>
-                </div>
-              </div>
-
-              <div style={styles.settingItem}>
-                <h4 style={styles.settingTitle}>Reset Data</h4>
-                <p style={styles.settingDescription}>Clear all session data and start fresh.</p>
-                <div style={styles.settingControl}>
-                  <button onClick={resetStats} style={styles.dangerButton}>
-                    Reset All Data
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div style={styles.page}>
-
-      {/* Header with Tabs */}
-      <Header 
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        onResetStats={resetStats}
-        theme={theme}
-        onThemeToggle={handleThemeToggle}
-      />
-
-      {/* Status Bar */}
-      <div style={styles.statusBar}>
-        <span style={styles.status}>
-          Status: <strong style={styles.statusText}>{status}</strong>
-          {err && <span style={styles.errorText}> • {err}</span>}
-        </span>
-      </div>
-
-      <div style={styles.mainContent}>
-        <div style={styles.leftPanel}>
-          <div style={styles.videoContainer}>
-            <h3 style={styles.sectionTitle}>Camera Feed</h3>
             <div style={{ ...styles.stage, width: stageSize.w * 0.7, height: stageSize.h * 0.7 }}>
               <video ref={videoRef} playsInline muted style={styles.videoHidden} />
               <canvas ref={canvasRef} style={{ ...styles.canvas, transform: "scale(0.7)" }} />
@@ -1203,6 +897,7 @@ function checkArmStretch(pts) {
   const Le = pts[13], Re = pts[14];
   const Lw = pts[15], Rw = pts[16];
   const nose = pts[0];
+
   if (!Ls || !Rs || !Le || !Re || !Lw || !Rw || !nose) {
     return { stretching: false, kind: null, message: "Missing landmarks" };
   }
@@ -1375,6 +1070,24 @@ const styles = {
   },
   statusLabel: { fontSize: "14px", color: "#9CA3AF" },
   statusValue: { fontSize: "14px", fontWeight: "600", color: "#FFFFFF" },
+
+  // settingsCard: {
+  //   backgroundColor: "#1F1F1F",
+  //   borderRadius: "16px",
+  //   padding: "24px",
+  //   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+  //   border: "1px solid #374151",
+  // },
+  // settingsContent: { display: "flex", flexDirection: "column", gap: "24px" },
+  // settingItem: {
+  //   padding: "20px",
+  //   backgroundColor: "#111111",
+  //   borderRadius: "8px",
+  //   border: "1px solid #374151",
+  // },
+  // settingTitle: { margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#FFFFFF" },
+  // settingDescription: { margin: "0 0 16px 0", fontSize: "14px", color: "#9CA3AF", lineHeight: "1.5" },
+  // settingControl: { display: "flex", alignItems: "center" },
   slider: {
     width: "100%",
     height: "6px",
