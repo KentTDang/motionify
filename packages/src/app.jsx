@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import Header from "./components/Header";
+import './index.css'; // Import the CSS file where the global styles are defined
 
 const CHECK_INTERVAL = 1000; // Check every 1 second
 const SAMPLES_NEEDED = 30;
@@ -47,9 +48,11 @@ export default function App() {
     alerts: [],
   });
 
-  // Tabs
-  const [activeTab, setActiveTab] = useState("exercise");
+  // New state for tab management and theme
+  const [activeTab, setActiveTab] = useState('data'); // Changed from 'exercise' to 'data'
+  const [theme, setTheme] = useState('dark');
 
+  // ...existing useEffect and helper functions remain the same...
   useEffect(() => {
     let canceled = false;
     let lastPostureCheck = 0;
@@ -236,6 +239,7 @@ export default function App() {
         setSessionStats((prev) => ({
           ...prev,
           longestBadPostureStreak: Math.max(prev.longestBadPostureStreak, badDuration),
+          badPostureTime: prev.badPostureTime + badDuration
         }));
         badPostureStartRef.current = null;
       }
@@ -254,12 +258,37 @@ export default function App() {
       return {
         ...prev,
         totalTime: sessionDuration,
-        goodPostureTime: goodTime,
-        badPostureTime: badTime,
+        goodPostureTime: Math.max(0, goodTime),
         currentBadPostureDuration: currentBadDuration,
         averagePostureScore: Math.round(((goodTime / Math.max(1, sessionDuration)) * 100) || 100),
       };
     });
+  };
+
+  const formatTime = (ms) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
+  const getPostureColor = (score) => {
+    if (theme === 'dark') {
+      if (score >= 80) return '#10B981';
+      if (score >= 60) return '#F59E0B';
+      return '#EF4444';
+    } else {
+      if (score >= 80) return '#059669';
+      if (score >= 60) return '#d97706';
+      return '#dc2626';
+    }
   };
 
   const resetStats = () => {
@@ -279,7 +308,14 @@ export default function App() {
 
   const handleTabChange = (tabId) => setActiveTab(tabId);
 
-  // ---------- render right panel ----------
+
+  const handleThemeToggle = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const styles = getStyles(theme);
+
+  // Render different right panel content based on active tab
   const renderRightPanelContent = () => {
     switch (activeTab) {
       case "exercise":
@@ -319,6 +355,39 @@ export default function App() {
               )}
             </div>
 
+
+            {/* Current Issues or No Issues */}
+            {postureStatus.details.length > 0 ? (
+              <div style={styles.issuesCard}>
+                <h3 style={styles.cardTitle}>Current Issues</h3>
+                {postureStatus.details.map((issue, i) => (
+                  <div key={i} style={{
+                    ...styles.issueItem,
+                    borderLeft: `3px solid ${issue.severity > 5 ? getPostureColor(0) : getPostureColor(60)}`
+                  }}>
+                    <div style={styles.issueHeader}>
+                      <span style={styles.issueType}>{issue.type}</span>
+                      <span style={{
+                        ...styles.severityBadge,
+                        backgroundColor: issue.severity > 5 ? getPostureColor(0) : getPostureColor(60)
+                      }}>
+                        {Math.round(issue.severity)}/10
+                      </span>
+                    </div>
+                    <div style={styles.issueMessage}>{issue.message}</div>
+                    <div style={styles.issueMeasurements}>{issue.measurements}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={styles.noIssuesCard}>
+                <div style={styles.noIssuesIcon}>✓</div>
+                <h3 style={styles.noIssuesTitle}>Excellent Posture!</h3>
+                <p style={styles.noIssuesText}>Keep up the good work. Your posture is looking great.</p>
+              </div>
+            )}
+
+            {/* Exercise Tips */}
             <div style={styles.exerciseCard}>
               <h3 style={styles.cardTitle}>Stretch Tips</h3>
               <div style={styles.exerciseList}>
@@ -351,13 +420,14 @@ export default function App() {
                 </div>
                 <div style={styles.statItem}>
                   <span style={styles.statLabel}>Good Posture</span>
-                  <span style={{ ...styles.statValue, color: "#10B981" }}>
+                  <span style={{...styles.statValue, color: getPostureColor(100)}}>
                     {formatTime(sessionStats.goodPostureTime)}
                   </span>
                 </div>
                 <div style={styles.statItem}>
                   <span style={styles.statLabel}>Bad Posture</span>
-                  <span style={{ ...styles.statValue, color: "#EF4444" }}>
+
+                  <span style={{...styles.statValue, color: getPostureColor(0)}}>
                     {formatTime(sessionStats.badPostureTime)}
                   </span>
                 </div>
@@ -405,12 +475,11 @@ export default function App() {
               <div style={styles.statusInfo}>
                 <div style={styles.statusItem}>
                   <span style={styles.statusLabel}>Camera Status:</span>
-                  <span
-                    style={{
-                      ...styles.statusValue,
-                      color: status === "running" ? "#10B981" : "#EF4444",
-                    }}
-                  >
+
+                  <span style={{
+                    ...styles.statusValue,
+                    color: status === 'running' ? getPostureColor(100) : getPostureColor(0)
+                  }}>
                     {status}
                   </span>
                 </div>
@@ -423,7 +492,8 @@ export default function App() {
                 {err && (
                   <div style={styles.statusItem}>
                     <span style={styles.statusLabel}>Error:</span>
-                    <span style={{ ...styles.statusValue, color: "#EF4444" }}>{err}</span>
+
+                    <span style={{...styles.statusValue, color: getPostureColor(0)}}>{err}</span>
                   </div>
                 )}
               </div>
@@ -436,6 +506,16 @@ export default function App() {
           <div style={styles.settingsCard}>
             <h3 style={styles.cardTitle}>Settings</h3>
             <div style={styles.settingsContent}>
+              <div style={styles.settingItem}>
+                <h4 style={styles.settingTitle}>Theme</h4>
+                <p style={styles.settingDescription}>Switch between dark and light mode.</p>
+                <div style={styles.settingControl}>
+                  <button onClick={handleThemeToggle} style={styles.themeToggleButton}>
+                    {theme === 'dark' ? 'Switch to Light Mode ☀️' : 'Switch to Dark Mode 🌙'}
+                  </button>
+                </div>
+              </div>
+
               <div style={styles.settingItem}>
                 <h4 style={styles.settingTitle}>Detection Sensitivity</h4>
                 <p style={styles.settingDescription}>Adjust how sensitive the posture detection is.</p>
@@ -483,8 +563,17 @@ export default function App() {
 
   return (
     <div style={styles.page}>
-      <Header activeTab={activeTab} onTabChange={handleTabChange} onResetStats={resetStats} />
 
+      {/* Header with Tabs */}
+      <Header 
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onResetStats={resetStats}
+        theme={theme}
+        onThemeToggle={handleThemeToggle}
+      />
+
+      {/* Status Bar */}
       <div style={styles.statusBar}>
         <span style={styles.status}>
           Status: <strong style={styles.statusText}>{status}</strong>
@@ -509,7 +598,6 @@ export default function App() {
   );
 }
 
-/* ========================= Helpers ========================= */
 function prepareCanvas(canvas, cssW, cssH) {
   const dpr = window.devicePixelRatio || 1;
   canvas.style.width = `${cssW}px`;
@@ -1018,4 +1106,415 @@ const styles = {
     fontWeight: "500",
     transition: "all 0.2s ease",
   },
+};
+// Theme-aware styles function
+const getStyles = (theme) => {
+  const isDark = theme === 'dark';
+  
+  return {
+    page: {
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100vh",
+      fontFamily: "ui-monospace, 'Fira Code', 'Cascadia Code', Consolas, monospace",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      color: isDark ? "#e4e4e7" : "#1f2937",
+      margin: 0,
+      padding: 0
+    },
+    statusBar: {
+      display: "flex",
+      alignItems: "center",
+      padding: "6px 12px",
+      backgroundColor: isDark ? "#0f0f0f" : "#f8f9fa",
+      borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      fontSize: "12px",
+      fontWeight: "400",
+      letterSpacing: "0.5px",
+      margin: 0
+    },
+    status: {
+      fontSize: "12px",
+      color: isDark ? "#71717a" : "#6b7280"
+    },
+    statusText: {
+      color: isDark ? "#00ff88" : "#10b981",
+      fontWeight: "500"
+    },
+    errorText: {
+      color: isDark ? "#ff4757" : "#dc2626"
+    },
+    mainContent: {
+      display: "flex",
+      flex: 1,
+      gap: "8px",
+      padding: "8px",
+      minHeight: "calc(100vh - 120px)",
+      margin: 0
+    },
+    leftPanel: {
+      flex: "1",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      padding: "4px",
+      margin: 0
+    },
+    rightPanel: {
+      flex: "1",
+      display: "flex",
+      flexDirection: "column",
+      gap: "8px",
+      overflow: "auto",
+      padding: "4px",
+      margin: 0
+    },
+    sectionTitle: {
+      fontSize: "14px",
+      fontWeight: "500",
+      color: isDark ? "#a1a1aa" : "#6b7280",
+      marginBottom: "8px",
+      textAlign: "center",
+      letterSpacing: "0.5px",
+      textTransform: "uppercase"
+    },
+    videoContainer: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      width: "100%",
+      margin: 0,
+      padding: 0
+    },
+    stage: {
+      position: "relative",
+      borderRadius: "4px",
+      overflow: "hidden",
+      background: "#000000",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
+    },
+    videoHidden: { 
+      display: "none" 
+    },
+    canvas: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 1,
+      pointerEvents: "none",
+      transformOrigin: "top left"
+    },
+    statusCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "12px",
+      margin: "0 0 8px 0"
+    },
+    cardHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "8px"
+    },
+    scoreCircle: {
+      width: "48px",
+      height: "48px",
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#ffffff",
+      fontSize: "14px",
+      fontWeight: "600",
+      border: "2px solid"
+    },
+    postureStatus: {
+      padding: "8px",
+      border: "1px solid",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      margin: 0
+    },
+    alert: {
+      color: isDark ? "#ff4757" : "#dc2626",
+      fontWeight: "500",
+      fontSize: "12px"
+    },
+    statsCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "12px",
+      margin: "0 0 8px 0"
+    },
+    cardTitle: {
+      margin: "0 0 8px 0",
+      fontSize: "14px",
+      fontWeight: "500",
+      color: isDark ? "#a1a1aa" : "#6b7280",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    statsGrid: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "6px"
+    },
+    statItem: {
+      display: "flex",
+      flexDirection: "column",
+      padding: "8px",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
+    },
+    statLabel: {
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#6b7280",
+      fontWeight: "500",
+      marginBottom: "2px",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    statValue: {
+      fontSize: "16px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    measurementsCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "12px",
+      margin: "0 0 8px 0"
+    },
+    measurementsGrid: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "6px"
+    },
+    measurementItem: {
+      display: "flex",
+      flexDirection: "column",
+      padding: "6px",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
+    },
+    measurementLabel: {
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#6b7280",
+      marginBottom: "2px",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    measurementValue: {
+      fontSize: "14px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    issuesCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "12px",
+      margin: "0 0 8px 0"
+    },
+    issueItem: {
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      padding: "8px",
+      margin: "4px 0",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      borderLeft: "3px solid"
+    },
+    issueHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "4px"
+    },
+    issueType: {
+      fontSize: "12px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    severityBadge: {
+      padding: "2px 6px",
+      color: "#ffffff",
+      fontSize: "10px",
+      fontWeight: "700"
+    },
+    issueMessage: {
+      fontSize: "12px",
+      color: isDark ? "#a1a1aa" : "#6b7280",
+      marginBottom: "2px"
+    },
+    issueMeasurements: {
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#9ca3af"
+    },
+    noIssuesCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "16px",
+      textAlign: "center",
+      margin: "0 0 8px 0"
+    },
+    noIssuesIcon: {
+      fontSize: "32px",
+      color: isDark ? "#00ff88" : "#10b981",
+      marginBottom: "6px"
+    },
+    noIssuesTitle: {
+      fontSize: "16px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937",
+      marginBottom: "4px"
+    },
+    noIssuesText: {
+      fontSize: "12px",
+      color: isDark ? "#71717a" : "#6b7280",
+      margin: 0
+    },
+    // Exercise tab styles
+    exerciseCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "12px",
+      margin: "0 0 8px 0"
+    },
+    exerciseList: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "6px"
+    },
+    exerciseItem: {
+      padding: "8px",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
+    },
+    exerciseTitle: {
+      margin: "0 0 4px 0",
+      fontSize: "12px",
+      fontWeight: "600",
+      color: isDark ? "#00ff88" : "#10b981"
+    },
+    exerciseDescription: {
+      margin: 0,
+      fontSize: "12px",
+      color: isDark ? "#a1a1aa" : "#6b7280",
+      lineHeight: "1.4"
+    },
+    // Status info styles
+    statusInfoCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "12px",
+      margin: "0 0 8px 0"
+    },
+    statusInfo: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "6px"
+    },
+    statusItem: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "4px 0",
+      borderBottom: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`
+    },
+    statusLabel: {
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#6b7280",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
+    },
+    statusValue: {
+      fontSize: "12px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    // Settings tab styles
+    settingsCard: {
+      backgroundColor: isDark ? "#0f0f0f" : "#f9fafb",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      padding: "12px",
+      margin: "0 0 8px 0"
+    },
+    settingsContent: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px"
+    },
+    settingItem: {
+      padding: "8px",
+      backgroundColor: isDark ? "#0a0a0a" : "#ffffff",
+      border: `1px solid ${isDark ? "#27272a" : "#e5e7eb"}`,
+      margin: 0
+    },
+    settingTitle: {
+      margin: "0 0 4px 0",
+      fontSize: "12px",
+      fontWeight: "600",
+      color: isDark ? "#e4e4e7" : "#1f2937"
+    },
+    settingDescription: {
+      margin: "0 0 8px 0",
+      fontSize: "10px",
+      color: isDark ? "#71717a" : "#6b7280",
+      lineHeight: "1.4"
+    },
+    settingControl: {
+      display: "flex",
+      alignItems: "center"
+    },
+    slider: {
+      width: "100%",
+      height: "4px",
+      backgroundColor: isDark ? "#27272a" : "#e5e7eb",
+      outline: "none",
+      appearance: "none"
+    },
+    toggleSwitch: {
+      position: "relative",
+      display: "inline-block",
+      width: "40px",
+      height: "20px"
+    },
+    toggleInput: {
+      opacity: 0,
+      width: 0,
+      height: 0
+    },
+    toggleSlider: {
+      position: "absolute",
+      cursor: "pointer",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: isDark ? "#27272a" : "#e5e7eb",
+      transition: "0.3s"
+    },
+    themeToggleButton: {
+      padding: "8px 16px",
+      backgroundColor: isDark ? "#27272a" : "#e5e7eb",
+      color: isDark ? "#e4e4e7" : "#1f2937",
+      border: `1px solid ${isDark ? "#3f3f46" : "#d1d5db"}`,
+      cursor: "pointer",
+      fontSize: "12px",
+      fontWeight: "600",
+      transition: "all 0.2s ease"
+    },
+    dangerButton: {
+      padding: "8px 16px",
+      backgroundColor: isDark ? "#ff4757" : "#dc2626",
+      color: "#ffffff",
+      border: "none",
+      cursor: "pointer",
+      fontSize: "10px",
+      fontWeight: "600",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
+      transition: "all 0.2s ease"
+    }
+  };
 };
