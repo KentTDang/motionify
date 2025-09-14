@@ -21,6 +21,7 @@ const Header = ({
         <div style={styles.headerButtons}>
           <button onClick={onThemeToggle} style={styles.themeButton}>
             {theme === "dark" ? "☀️" : "🌙"}
+
           </button>
           <button onClick={onResetStats} style={styles.resetButton}>
             RESET
@@ -30,6 +31,7 @@ const Header = ({
 
       <div style={styles.tabsContainer}>
         {tabs.map((tab) => (
+
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}

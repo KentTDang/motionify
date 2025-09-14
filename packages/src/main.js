@@ -21,12 +21,12 @@ function createWindow() {
   });
 
   mainWindow.loadURL('http://localhost:3000');
-
   // Optional: minimize-to-tray
   mainWindow.on('minimize', (e) => {
     e.preventDefault();
     mainWindow.hide();
   });
+
 }
 
 function createTray() {
