@@ -269,12 +269,20 @@ const NOTIFY_INTERVAL = 20;  // periodic reminders
 const BAD_POSTURE_NOTIFY_INTERVAL = 30; // seconds
 
 // inside updateSessionStats
+// put this at component scope
+const lastStatsUpdateRef = useRef(Date.now());
+
+// replace your updateSessionStats with this
 const updateSessionStats = () => {
   const now = Date.now();
   const sessionDuration = now - sessionStartRef.current;
-  const currentSecond = Math.floor(sessionDuration / 1000);
 
-  // 🔔 Stretch reminder every NOTIFY_INTERVAL seconds
+  // real elapsed time since last update
+  const deltaMs = now - lastStatsUpdateRef.current;
+  lastStatsUpdateRef.current = now;
+
+  // 🔔 Stretch reminder (still in seconds)
+  const currentSecond = Math.floor(sessionDuration / 1000);
   if (currentSecond - lastNotifySecondRef.current >= NOTIFY_INTERVAL) {
     window.electron?.sendPostureStatus("Stretch Reminder");
     lastNotifySecondRef.current = currentSecond;
@@ -289,26 +297,24 @@ const updateSessionStats = () => {
     }
   }
 
-  // ✅ Update session stats
   setSessionStats(prev => {
-    // If bad posture is currently active, count elapsed time since last tick
-    const badIncrement = badPostureStartRef.current ? CHECK_INTERVAL : 0;
+    const badIncrementMs = badPostureStartRef.current ? deltaMs : 0;
 
-    const newBadTime = prev.badPostureTime + badIncrement;
-    const newGoodTime = sessionDuration - newBadTime;
+    const newBadTime = prev.badPostureTime + badIncrementMs;         // ms
+    const newGoodTime = sessionDuration - newBadTime;                 // ms
+    const currentBadMs = badPostureStartRef.current ? (now - badPostureStartRef.current) : 0;
 
     return {
       ...prev,
-      totalTime: sessionDuration,
-      goodPostureTime: newGoodTime,
-      badPostureTime: newBadTime,
-      currentBadPostureDuration: badPostureStartRef.current
-        ? now - badPostureStartRef.current
-        : 0,
-      averagePostureScore: Math.round(((newGoodTime / sessionDuration) * 100) || 100)
+      totalTime: sessionDuration,                 // ms
+      goodPostureTime: newGoodTime,              // ms
+      badPostureTime: newBadTime,                // ms
+      currentBadPostureDuration: currentBadMs,   // ms
+      averagePostureScore: Math.round(((newGoodTime / sessionDuration) * 100) || 100),
     };
   });
 };
+
 
 
   const formatTime = (ms) => {
