@@ -1,16 +1,16 @@
-const { app, BrowserWindow, Tray, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, nativeImage, Notification } = require('electron');
 const path = require('path');
 
-// Keep references to prevent garbage collection
 let mainWindow = null;
 let tray = null;
+let stretchIntervalId = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1024,        // Set your preferred width
-    height: 768,        // Set your preferred height
-    minWidth: 800,      // Minimum window size
-    minHeight: 600,     // Minimum window size
+    width: 1024,
+    height: 768,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -19,61 +19,47 @@ function createWindow() {
   });
 
   mainWindow.loadURL('http://localhost:3000');
-  
-  // Uncomment to remember window size and position
-  // mainWindow.on('close', () => {
-  //   const bounds = mainWindow.getBounds();
-  //   storage.set('windowBounds', bounds);
-  // });
 }
 
 function createTray() {
   const iconPath = path.join(__dirname, 'assets', 'tray-good-Template.png');
-  
-  // Create a native image and resize it with specific options
-  const icon = nativeImage.createFromPath(iconPath).resize({
-    width: 16,
-    height: 16,
-    quality: 'best'
-  });
-  
+  const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16, quality: 'best' });
   tray = new Tray(icon);
-  tray.setToolTip('Posture Status: Good');
+  tray.setToolTip('Stretch reminders active');
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.motionify.stretchreminder');
+  }
+
   createWindow();
   createTray();
 
-  // Listen for posture updates from renderer
-  ipcMain.on('posture-status', (event, status) => {
-    if (!tray) return;
-    
-    const isGoodPosture = status === 'Good Posture';
-    const iconName = isGoodPosture ? 'tray-good-Template.png' : 'tray-bad-Template.png';
-    const newIconPath = path.join(__dirname, 'assets', iconName);
-    
-    // Resize the new icon consistently
-    const newIcon = nativeImage.createFromPath(newIconPath).resize({
-      width: 16,
-      height: 16,
-      quality: 'best'
-    });
-    
-    tray.setImage(newIcon);
-    tray.setToolTip(`Posture Status: ${status}`);
-  });
+  // 🔔 Fire one right away to confirm
+
+  // 🔔 Notify every 2 minutes
+  const TWO_MIN = 60 * 1000;
+  if (!stretchIntervalId) {
+    stretchIntervalId = setInterval(() => {
+      new Notification({
+        title: "Time to Stretch!",
+        body: "Stand up, move around, and reset your posture.",
+        silent: false
+      }).show();
+    }, TWO_MIN);
+  }
 });
 
-// Prevent window from being garbage collected
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  if (stretchIntervalId) {
+    clearInterval(stretchIntervalId);
+    stretchIntervalId = null;
   }
+  if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow();
-  }
+  if (mainWindow === null) createWindow();
 });
